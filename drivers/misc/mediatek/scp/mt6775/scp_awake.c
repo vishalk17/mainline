@@ -184,9 +184,11 @@ int scp_awake_unlock(enum scp_core_id scp_id)
 	}
 	/* scp unlock awake success*/
 	if (ret != -1) {
-		*scp_awake_count = *scp_awake_count - 1;
-		if (*scp_awake_count < 0)
-			pr_notice("scp_awake_unlock:%s scp_awake_count=%d NOT SYNC!\n", core_id, *scp_awake_count);
+		if (*scp_awake_count == 0)
+			pr_notice("scp_awake_unlock:%s NOT SYNC!\n", core_id);
+
+		if (*scp_awake_count > 0)
+			*scp_awake_count = *scp_awake_count - 1;
 	}
 
 	/* spinlock context safe */

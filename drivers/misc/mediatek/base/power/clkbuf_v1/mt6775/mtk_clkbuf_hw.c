@@ -1208,6 +1208,10 @@ void clk_buf_init_pmic_clkbuf(void)
 			    PMIC_RG_SRCLKEN_IN3_EN_MASK, PMIC_RG_SRCLKEN_IN3_EN_SHIFT);
 #endif
 
+	pmic_config_interface(PMIC_RG_XO_RESERVED4_ADDR, 0x3,
+			    PMIC_RG_XO_RESERVED4_MASK, PMIC_RG_XO_RESERVED4_SHIFT);
+	pmic_config_interface(PMIC_DCXO_CW15, 0xA2AA,
+			    PMIC_REG_MASK, PMIC_REG_SHIFT);
 	/* Check if the setting is ok */
 	clk_buf_dump_clkbuf_log();
 #endif /* #ifndef __KERNEL__ */

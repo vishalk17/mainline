@@ -150,10 +150,10 @@
 /* APMIXED CON0/CON1 Register */
 /* **************************************************** */
 #define REG_PLL_NOT_SUPPORT             0xdeadbeef
-#define REG_FH_PLL0_CON0 REG_APMIX_ADDR(0x0310) /*ARMPLL1 */
+#define REG_FH_PLL0_CON0 REG_PLL_NOT_SUPPORT    /*ARMPLL1 is not used in MT6775 but still occupy one register offset*/
 #define REG_FH_PLL1_CON0 REG_APMIX_ADDR(0x0320) /*ARMPLL2 */
-#define REG_FH_PLL2_CON0 REG_PLL_NOT_SUPPORT    /*ARMPLL3 is not used in MT6758 but still occupy one register offset*/
-#define REG_FH_PLL3_CON0 REG_PLL_NOT_SUPPORT    /*ARMPLL4 is not used in MT6758 but still occupy one register offset*/
+#define REG_FH_PLL2_CON0 REG_APMIX_ADDR(0x0330) /*ARMPLL3 */
+#define REG_FH_PLL3_CON0 REG_PLL_NOT_SUPPORT    /*ARMPLL4 is not used in MT6775 but still occupy one register offset*/
 #define REG_FH_PLL4_CON0 REG_APMIX_ADDR(0x0350) /*CCIPLL */
 #define REG_FH_PLL5_CON0 REG_APMIX_ADDR(0x0290) /*EMIPLL */
 #define REG_FH_PLL6_CON0 REG_APMIX_ADDR(0x0210) /*GPUPLL */
@@ -162,14 +162,14 @@
 #define REG_FH_PLL9_CON0 REG_APMIX_ADDR(0x0230) /*MAINPLL */
 #define REG_FH_PLL10_CON0 REG_APMIX_ADDR(0x0250) /*MSDCPLL */
 #define REG_FH_PLL11_CON0 REG_APMIX_ADDR(0x0260) /*MMPLL */
-#define REG_FH_PLL12_CON0 REG_PLL_NOT_SUPPORT    /*VDECPLL is not used in MT6758 but still occupy one register offset*/
+#define REG_FH_PLL12_CON0 REG_PLL_NOT_SUPPORT    /*VDECPLL is not used in MT6775 but still occupy one register offset*/
 #define REG_FH_PLL13_CON0 REG_APMIX_ADDR(0x0280) /*TVDPLL */
-#define REG_FH_PLL14_CON0 REG_PLL_NOT_SUPPORT    /*FSMIPLL is not used in MT6758 but still occupy one register offset*/
+#define REG_FH_PLL14_CON0 REG_PLL_NOT_SUPPORT    /*FSMIPLL is not used in MT6775 but still occupy one register offset*/
 
-#define REG_FH_PLL0_CON1 REG_APMIX_ADDR(0x0314) /*ARMPLL1 */
+#define REG_FH_PLL0_CON1 REG_PLL_NOT_SUPPORT    /*ARMPLL1  is not used in MT6775 but still occupy one register offset*/
 #define REG_FH_PLL1_CON1 REG_APMIX_ADDR(0x0324) /*ARMPLL2 */
-#define REG_FH_PLL2_CON1 REG_PLL_NOT_SUPPORT    /*ARMPLL3 is not used in MT6758 but still occupy one register offset*/
-#define REG_FH_PLL3_CON1 REG_PLL_NOT_SUPPORT    /*ARMPLL4 is not used in MT6758 but still occupy one register offset.*/
+#define REG_FH_PLL2_CON1 REG_APMIX_ADDR(0x0334) /*ARMPLL3 */
+#define REG_FH_PLL3_CON1 REG_PLL_NOT_SUPPORT    /*ARMPLL4 is not used in MT6775 but still occupy one register offset.*/
 #define REG_FH_PLL4_CON1 REG_APMIX_ADDR(0x0354) /*CCIPLL */
 #define REG_FH_PLL5_CON1 REG_APMIX_ADDR(0x0294) /*EMIPLL */
 #define REG_FH_PLL6_CON1 REG_APMIX_ADDR(0x0214) /*GPUPLL */
@@ -178,9 +178,9 @@
 #define REG_FH_PLL9_CON1 REG_APMIX_ADDR(0x0234) /*MAINPLL */
 #define REG_FH_PLL10_CON1 REG_APMIX_ADDR(0x0254) /*MSDCPLL */
 #define REG_FH_PLL11_CON1 REG_APMIX_ADDR(0x0264) /*MMPLL */
-#define REG_FH_PLL12_CON1 REG_PLL_NOT_SUPPORT    /*VDECPLL is not used in MT6758 but still occupy one register offset.*/
+#define REG_FH_PLL12_CON1 REG_PLL_NOT_SUPPORT    /*VDECPLL is not used in MT6775 but still occupy one register offset.*/
 #define REG_FH_PLL13_CON1 REG_APMIX_ADDR(0x0284) /*TVDPLL */
-#define REG_FH_PLL14_CON1 REG_PLL_NOT_SUPPORT    /*FSMIPLL is not used in MT6758 but still occupy one register offset.*/
+#define REG_FH_PLL14_CON1 REG_PLL_NOT_SUPPORT    /*FSMIPLL is not used in MT6775 but still occupy one register offset.*/
 
 /***************************************************** */
 

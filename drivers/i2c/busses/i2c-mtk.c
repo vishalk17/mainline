@@ -308,6 +308,7 @@ static void mt_i2c_clock_disable(struct mt_i2c *i2c)
 
 static int i2c_get_semaphore(struct mt_i2c *i2c)
 {
+	int id;
 #ifdef CONFIG_MTK_TINYSYS_SCP_SUPPORT
 	int count = 100;
 #endif
@@ -332,8 +333,14 @@ static int i2c_get_semaphore(struct mt_i2c *i2c)
 		}
 	}
 #endif
+	if (i2c->have_scp) {
+		if (i2c->scp_ch == -1)
+			return 0;
+		id = i2c->scp_ch;
+	} else
+		id = i2c->id;
 
-	switch (i2c->id) {
+	switch (id) {
 #ifdef CONFIG_MTK_TINYSYS_SCP_SUPPORT
 	case 0:
 		while ((get_scp_semaphore(SEMAPHORE_I2C0) != 1) && count > 0)
@@ -351,14 +358,21 @@ static int i2c_get_semaphore(struct mt_i2c *i2c)
 
 static int i2c_release_semaphore(struct mt_i2c *i2c)
 {
+	int id;
 	if (i2c->appm)
 		cpuhvfs_release_dvfsp_semaphore(SEMA_I2C_DRV);
 #ifdef CONFIG_MTK_GPU_SPM_DVFS_SUPPORT
 	if (i2c->gpupm)
 		dvfs_gpu_pm_spin_unlock_for_vgpu();
 #endif
+	if (i2c->have_scp) {
+		if (i2c->scp_ch == -1)
+			return 0;
+		id = i2c->scp_ch;
+	} else
+		id = i2c->id;
 
-	switch (i2c->id) {
+	switch (id) {
 #ifdef CONFIG_MTK_TINYSYS_SCP_SUPPORT
 	case 0:
 		return release_scp_semaphore(SEMAPHORE_I2C0) == 1 ? 0 : -EBUSY;
@@ -839,6 +853,11 @@ static int mt_i2c_do_transfer(struct mt_i2c *i2c)
 
 	/* Prepare buffer data to start transfer */
 	if (isDMA == true) {
+		if (i2c->usr_def_dma && i2c->raw_base) {
+			i2c_writel_dma(i2c->raw_base, i2c, OFFSET_USR_DEF_ADDR);
+			i2c_writel_dma(I2C_DMA_ROLLBACK, i2c, OFFSET_USR_DEF_CTRL);
+		}
+
 #ifdef CONFIG_MTK_LM_MODE
 		if ((i2c->dev_comp->dma_support == 1) && (enable_4G())) {
 			i2c_writel_dma(0x1, i2c, OFFSET_TX_MEM_ADDR2);
@@ -991,9 +1010,11 @@ static bool mt_i2c_should_combine(struct i2c_msg *msg)
 
 static bool mt_i2c_should_batch(struct i2c_msg *prev, struct i2c_msg *next)
 {
-	if ((prev->flags & I2C_M_RD) || (next->flags & I2C_M_RD))
+	if ((prev == NULL) || (next == NULL) ||
+	    (prev->flags & I2C_M_RD) || (next->flags & I2C_M_RD))
 		return false;
-	if (prev->len == next->len && prev->addr == next->addr)
+	if ((next != NULL) && (prev != NULL) &&
+	    (prev->len == next->len && prev->addr == next->addr))
 		return true;
 	return false;
 }
@@ -1394,6 +1415,7 @@ static const struct i2c_algorithm mt_i2c_algorithm = {
 
 static int mt_i2c_parse_dt(struct device_node *np, struct mt_i2c *i2c)
 {
+	int ret = 0;
 	i2c->speed_hz = I2C_DEFAUT_SPEED;
 	of_property_read_u32(np, "clock-frequency", &i2c->speed_hz);
 	of_property_read_u32(np, "clock-div", &i2c->clk_src_div);
@@ -1401,6 +1423,10 @@ static int mt_i2c_parse_dt(struct device_node *np, struct mt_i2c *i2c)
 	of_property_read_u32(np, "ch_offset_default", &i2c->ch_offset_default);
 	of_property_read_u32(np, "dma_ch_offset_default", &i2c->dma_ch_offset_default);
 	of_property_read_u32(np, "aed", &i2c->aed);
+	ret = of_property_read_s32(np, "scp-ch", &i2c->scp_ch);
+	if (ret >= 0)
+		i2c->have_scp = true;
+
 	i2c->have_pmic = of_property_read_bool(np, "mediatek,have-pmic");
 	i2c->have_dcm = of_property_read_bool(np, "mediatek,have-dcm");
 	i2c->use_push_pull = of_property_read_bool(np, "mediatek,use-push-pull");
@@ -1408,6 +1434,7 @@ static int mt_i2c_parse_dt(struct device_node *np, struct mt_i2c *i2c)
 	i2c->gpupm = of_property_read_bool(np, "mediatek,gpupm_used");
 	i2c->buffermode = of_property_read_bool(np, "mediatek,buffermode_used");
 	i2c->hs_only = of_property_read_bool(np, "mediatek,hs_only");
+	i2c->usr_def_dma = of_property_read_bool(np, "mediatek,usr_def_dma");
 	pr_info("[I2C] id : %d, freq : %d, div : %d, ch_offset: %d, dma_ch_offset: %d\n",
 		i2c->id, i2c->speed_hz, i2c->clk_src_div, i2c->ch_offset_default,
 		i2c->dma_ch_offset_default);
@@ -1605,6 +1632,8 @@ static int mt_i2c_probe(struct platform_device *pdev)
 	i2c->base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(i2c->base))
 		return PTR_ERR(i2c->base);
+
+	i2c->raw_base = res->start;
 
 	if (i2c->id < I2C_MAX_CHANNEL)
 		g_mt_i2c[i2c->id] = i2c;

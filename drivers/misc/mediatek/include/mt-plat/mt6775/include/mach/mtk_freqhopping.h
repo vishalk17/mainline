@@ -16,7 +16,7 @@
 
 
 /* Disable all FHCTL Common Interface for chip Bring-up */
-#define  DISABLE_FREQ_HOPPING
+#undef  DISABLE_FREQ_HOPPING
 /* Use HW semaphore to share REG_FHCTL_HP_EN with secure CPU DVFS */
 #undef HP_EN_REG_SEMAPHORE_PROTECT
 

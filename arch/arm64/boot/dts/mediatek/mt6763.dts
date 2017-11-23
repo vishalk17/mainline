@@ -2071,12 +2071,16 @@
 		compatible = "mediatek,disp_ovl0_2l";
 		reg = <0 0x14009000 0 0x1000>;
 		interrupts = <GIC_SPI 215 IRQ_TYPE_LEVEL_LOW>;
+		clocks = <&mmsys_config MMSYS_DISP_OVL0_2L>;
+		clock-names = "DISP_OVL0_2L";
 	};
 
 	disp_ovl1_2l: disp_ovl1_2l@1400a000 {
 		compatible = "mediatek,disp_ovl1_2l";
 		reg = <0 0x1400a000 0 0x1000>;
 		interrupts = <GIC_SPI 216 IRQ_TYPE_LEVEL_LOW>;
+		clocks = <&mmsys_config MMSYS_DISP_OVL1_2L>;
+		clock-names = "DISP_OVL1_2L";
 	};
 
 	disp_rdma0@1400b000 {
@@ -3882,7 +3886,11 @@
 					dev = "/dev/block/platform/bootdevice/by-name/system";
 					type = "ext4";
 					mnt_flags = "ro";
+					#ifndef CONFIG_MTK_DM_VERITY_OFF
+					fsmgr_flags = "wait,verify";
+					#else
 					fsmgr_flags = "wait";
+					#endif
 				};
 #endif
 #ifndef CONFIG_MTK_LATE_MOUNT
@@ -3892,7 +3900,11 @@
 					type = "ext4";
 					mnt_flags = "ro";
 #ifndef CONFIG_MTK_AB_OTA_UPDATER
+					#ifndef CONFIG_MTK_DM_VERITY_OFF
+					fsmgr_flags = "wait,verify";
+					#else
 					fsmgr_flags = "wait";
+					#endif
 #else
 					#ifndef CONFIG_MTK_DM_VERITY_OFF
 					fsmgr_flags = "wait,slotselect,verify";

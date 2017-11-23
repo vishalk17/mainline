@@ -27,16 +27,18 @@
 extern "C" {
 #endif
 
-#define UPOWER_NOT_READY (1)
+/* #define UPOWER_NOT_READY (1) */
+#define EEM_NOT_SET_VOLT (1)
 #define UPOWER_ENABLE (1)
 
 #ifdef CONFIG_MTK_TINYSYS_SSPM_SUPPORT
-	#define UPOWER_ENABLE_TINYSYS_SSPM (1)
+	#define UPOWER_ENABLE_TINYSYS_SSPM (0)
 #else
 	#define UPOWER_ENABLE_TINYSYS_SSPM (0)
 #endif
 
-/* #define EARLY_PORTING_EEM */
+/* FIX ME */
+#define EARLY_PORTING_EEM
 /* #define EARLY_PORTING_SPOWER */
 /* #define UPOWER_UT */
 /* #define UPOWER_PROFILE_API_TIME */
@@ -61,7 +63,7 @@ extern "C" {
 #define NR_UPOWER_CSTATES 2 /* only use c0, c1 */
 #define UPOWER_C1_VOLT 60000 /* 0.6v */
 #define UPOWER_C1_IDX 1 /* idx of c1 in idle_states[][idx] */
-#define NR_UPOWER_TBL_LIST 2 /* num of all tables */
+#define NR_UPOWER_TBL_LIST 5 /* num of all tables */
 /* upower banks */
 enum upower_bank {
 	UPOWER_BANK_L,
@@ -72,6 +74,8 @@ enum upower_bank {
 
 	NR_UPOWER_BANK,
 };
+
+#define UPOWER_BANK_CLS_BASE UPOWER_BANK_CLS_L
 
 /* for upower_get_power() to get the target power */
 enum upower_dtype {

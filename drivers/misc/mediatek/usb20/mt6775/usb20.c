@@ -45,7 +45,6 @@ module_param(dpidle_status, int, 0644);
 
 static int dpidle_debug;
 module_param(dpidle_debug, int, 0644);
-#define FOR_BRING_UP
 
 /* static DEFINE_SPINLOCK(usb_hal_dpidle_lock); */
 

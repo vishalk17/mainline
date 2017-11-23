@@ -405,19 +405,24 @@
 			 <&infracfg_ao INFRACFG_AO_AP_DMA_CG>;
 		clock-names = "main", "dma";
 		clock-div = <5>;
+		/* This setting avoid getting HW semaphore*/
+		/* from CH0. For some platforms that the CH0 */
+		/* is not related to SCP channel, this property*/
+		/* (-1) should be set */
+		scp-ch = <(-1)>;
 	};
 
-	i2c1: i2c@11014000 {
+	i2c1: i2c@11011000 {
 		compatible = "mediatek,mt6771-i2c";
 		id = <1>;
-		reg = <0 0x11014000 0 0x1000>,
-			<0 0x11000180 0 0x80>;
-		interrupts = <GIC_SPI 131 IRQ_TYPE_LEVEL_LOW>;
-		clocks = <&infracfg_ao INFRACFG_AO_I2C1_IMM_CG>,
-			 <&infracfg_ao INFRACFG_AO_AP_DMA_CG>,
-			 <&infracfg_ao INFRACFG_AO_I2C1_ARBITER_CG>;
-		clock-names = "main", "dma", "arb";
+		reg = <0 0x11011000 0 0x1000>,
+			<0 0x11000480 0 0x80>;
+		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_LOW>;
+		clocks = <&infracfg_ao INFRACFG_AO_I2C4_CG>,
+			 <&infracfg_ao INFRACFG_AO_AP_DMA_CG>;
+		clock-names = "main", "dma";
 		clock-div = <5>;
+		scp-ch = <0>;
 	};
 
 	i2c2: i2c@11015000 {
@@ -431,6 +436,7 @@
 			 <&infracfg_ao INFRACFG_AO_I2C2_ARBITER_CG>;
 		clock-names = "main", "dma", "arb";
 		clock-div = <5>;
+		mediatek,usr_def_dma;
 	};
 
 	i2c3: i2c@1100f000 {
@@ -445,16 +451,18 @@
 		clock-div = <5>;
 	};
 
-	i2c4: i2c@11011000 {
+	i2c4: i2c@11014000 {
 		compatible = "mediatek,mt6771-i2c";
 		id = <4>;
-		reg = <0 0x11011000 0 0x1000>,
-			<0 0x11000480 0 0x80>;
-		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_LOW>;
-		clocks = <&infracfg_ao INFRACFG_AO_I2C4_CG>,
-			 <&infracfg_ao INFRACFG_AO_AP_DMA_CG>;
-		clock-names = "main", "dma";
+		reg = <0 0x11014000 0 0x1000>,
+			<0 0x11000180 0 0x80>;
+		interrupts = <GIC_SPI 131 IRQ_TYPE_LEVEL_LOW>;
+		clocks = <&infracfg_ao INFRACFG_AO_I2C1_IMM_CG>,
+			 <&infracfg_ao INFRACFG_AO_AP_DMA_CG>,
+			 <&infracfg_ao INFRACFG_AO_I2C1_ARBITER_CG>;
+		clock-names = "main", "dma", "arb";
 		clock-div = <5>;
+		mediatek,usr_def_dma;
 	};
 
 	i2c5: i2c@11017000 {
@@ -480,6 +488,7 @@
 			 <&infracfg_ao INFRACFG_AO_AP_DMA_CG>;
 		clock-names = "main", "dma";
 		clock-div = <5>;
+		scp-ch = <1>;
 	};
 
 	i2c7: i2c@1101a000 {
@@ -1518,6 +1527,14 @@
 		compatible = "mediatek,therm_ctrl";
 		reg = <0 0x1100b000 0 0x1000>;
 		interrupts = <GIC_SPI 76 IRQ_TYPE_LEVEL_LOW>;
+		clocks = <&infracfg_ao INFRACFG_AO_THERM_CG>;
+		clock-names = "therm-main";
+	};
+
+	eem_fsm@1100b000 {
+		compatible = "mediatek,eem_fsm";
+		reg = <0 0x1100b000 0 0x1000>;
+		interrupts = <GIC_SPI 127 IRQ_TYPE_LEVEL_LOW>;
 	};
 
 	btif@1100c000 {
@@ -1983,8 +2000,14 @@
 		larbs = <&smi_larb0>, <&smi_larb1>, <&smi_larb2>,
 			<&smi_larb3>, <&smi_larb4>, <&smi_larb5>, <&smi_larb6>;
 		clocks = <&scpsys SCP_SYS_DIS>, <&mmsys_config MMSYS_GALS_COMM0>,
-			<&mmsys_config MMSYS_GALS_COMM1>, <&mmsys_config MMSYS_SMI_COMMON>;
-		clock-names = "mtcmos-mm", "smi-common-gals-comm0", "smi-common-gals-comm1", "smi-common";
+			<&mmsys_config MMSYS_GALS_COMM1>, <&mmsys_config MMSYS_SMI_COMMON>,
+			<&topckgen TOP_MUX_MM>, <&topckgen TOP_MUX_CAM>, <&topckgen TOP_MUX_IMG>,
+			<&topckgen TOP_SYSPLL_D2>, <&topckgen TOP_SYSPLL_D3>,
+			<&topckgen TOP_MMPLL_D6>, <&topckgen TOP_MMPLL_D7>, <&topckgen TOP_UNIVPLL_D2_D2>;
+		clock-names = "mtcmos-mm", "smi-common-gals-comm0", "smi-common-gals-comm1", "smi-common",
+			"MMDVFS_CLK_MUX_TOP_MM_SEL", "MMDVFS_CLK_MUX_TOP_CAM_SEL", "MMDVFS_CLK_MUX_TOP_IMG_SEL",
+			"mmdvfs_clk_syspll_d2_ck", "mmdvfs_clk_syspll_d3_ck",
+			"mmdvfs_clk_mmpll_d6_ck", "mmdvfs_clk_mmpll_d7_ck", "mmdvfs_clk_univpll_d2_d2_ck";
 	};
 
 	disp_rsz@1401a000 {
@@ -2313,6 +2336,23 @@
 		compatible = "mediatek,camsys", "syscon";
 		reg = <0 0x1a000000 0 0x1000>;
 		#clock-cells = <1>;
+		/* Camera CCF */
+		clocks = <&scpsys SCP_SYS_DIS>,
+				<&scpsys SCP_SYS_ISP>,
+				<&scpsys SCP_SYS_CAM>,
+				<&camsys CAMSYS_CAM_CGPDN>,
+				<&camsys CAMSYS_CAMTG_CGPDN>,
+				<&camsys CAMSYS_CAMSV0_CGPDN>,
+				<&camsys CAMSYS_CAMSV1_CGPDN>,
+				<&camsys CAMSYS_CAMSV2_CGPDN>;
+		clock-names = "ISP_SCP_SYS_DIS",
+				"ISP_SCP_SYS_ISP",
+				"ISP_SCP_SYS_CAM",
+				"CAMSYS_CAM_CGPDN",
+				"CAMSYS_CAMTG_CGPDN",
+				"CAMSYS_CAMSV0_CGPDN",
+				"CAMSYS_CAMSV1_CGPDN",
+				"CAMSYS_CAMSV2_CGPDN";
 	};
 
 	ipu_conn: ipu_conn@19000000 {
@@ -2457,34 +2497,36 @@
 		compatible = "mediatek,seninf_top";
 		reg = <0 0x1a040000 0 0x1000>;
 #if 0
-		interrupts = <GIC_SPI 234 IRQ_TYPE_LEVEL_LOW>;
-		clocks = <&scpsys SCP_SYS_MM0>,
-			<&scpsys SCP_SYS_CAM>,
-			<&camsys CLK_CAM_SENINF>,
-			<&topckgen CLK_TOP_CAMTG_SEL>,
-			<&topckgen CLK_TOP_CAMTG2_SEL>,
-			<&topckgen CLK_TOP_CAMTG3_SEL>,
-			<&topckgen CLK_TOP_CAMTG4_SEL>,
-			<&topckgen CLK_TOP_UNIVPLL2_D16>,
-			<&topckgen CLK_TOP_UNIVPLL_D52>,
-			<&topckgen CLK_TOP_UNIVPLL_D104>,
-			<&topckgen CLK_TOP_UNIVPLL_D208>,
-			<&topckgen CLK_TOP_UNIVPLL_D416>,
-			<&clk26m>;
-		clock-names = "SCP_SYS_MM0",
-			"SCP_SYS_CAM",
-			"CLK_CAM_SENINF",
-			"CLK_TOP_CAMTG_SEL",
-			"CLK_TOP_CAMTG2_SEL",
-			"CLK_TOP_CAMTG3_SEL",
-			"CLK_TOP_CAMTG4_SEL",
-			"CLK_TOP_UNIVPLL2_D16",
-			"CLK_TOP_UNIVPLL_D52",
-			"CLK_TOP_UNIVPLL_D104",
-			"CLK_TOP_UNIVPLL_D208",
-			"CLK_TOP_UNIVPLL_D416",
-			"CLK_TOP_CLK26M";
+		interrupts = <GIC_SPI 251 IRQ_TYPE_LEVEL_LOW>;
 #endif
+		clocks = <&scpsys SCP_SYS_DIS>,
+			<&scpsys SCP_SYS_CAM>,
+			<&camsys CAMSYS_SENINF_CGPDN>,
+			<&topckgen TOP_MUX_CAMTG>,
+			<&topckgen TOP_MUX_CAMTG2>,
+			<&topckgen TOP_MUX_CAMTG3>,
+			<&topckgen TOP_MUX_CAMTG4>,
+			<&clk26m>,
+			<&topckgen TOP_UNIVP_192M_D8>,
+			<&topckgen TOP_UNIVPLL_D3_D8>,
+			<&topckgen TOP_UNIVP_192M_D4>,
+			<&topckgen TOP_F26M_CK_D2>,
+			<&topckgen TOP_UNIVP_192M_D16>,
+			<&topckgen TOP_UNIVP_192M_D32>;
+		clock-names = "SCP_SYS_DIS",
+			"SCP_SYS_CAM",
+			"CAMSYS_SENINF_CGPDN",
+			"TOP_MUX_CAMTG",
+			"TOP_MUX_CAMTG2",
+			"TOP_MUX_CAMTG3",
+			"TOP_MUX_CAMTG4",
+			"TOP_CLK26M",
+			"TOP_UNIVP_192M_D8",
+			"TOP_UNIVPLL_D3_D8",
+			"TOP_UNIVP_192M_D4",
+			"TOP_F26M_CK_D2",
+			"TOP_UNIVP_192M_D16",
+			"TOP_UNIVP_192M_D32";
 	};
 
 	kd_camera_hw1:kd_camera_hw1@1a040000 {
@@ -3417,7 +3459,11 @@
 					dev = "/dev/block/platform/bootdevice/by-name/system";
 					type = "ext4";
 					mnt_flags = "ro";
+					#ifndef CONFIG_MTK_DM_VERITY_OFF
+					fsmgr_flags = "wait,verify";
+					#else
 					fsmgr_flags = "wait";
+					#endif
 				};
 #endif
 #ifndef CONFIG_MTK_LATE_MOUNT
@@ -3427,7 +3473,11 @@
 					type = "ext4";
 					mnt_flags = "ro";
 #ifndef CONFIG_MTK_AB_OTA_UPDATER
+					#ifndef CONFIG_MTK_DM_VERITY_OFF
+					fsmgr_flags = "wait,verify";
+					#else
 					fsmgr_flags = "wait";
+					#endif
 #else
 					#ifndef CONFIG_MTK_DM_VERITY_OFF
 					fsmgr_flags = "wait,slotselect,verify";
@@ -3595,8 +3645,19 @@
 	als: als {
 	};
 
-	irq_nfc: irq_nfc {
+	/* NFC start */
+	nfc:nfc {
+		compatible = "mediatek,nfc-gpio-v2";
+		gpio-rst = <19>;
+		gpio-rst-std = <&pio 19 0x0>;
+		gpio-irq = <20>;
+		gpio-irq-std = <&pio 20 0x0>;
 	};
+
+	irq_nfc: irq_nfc {
+		compatible = "mediatek,irq_nfc-eint";
+	};
+	/* NFC end */
 
 	smart_pa: smart_pa {
 	};
@@ -3616,6 +3677,3 @@
 #include "cust_mt6771_msdc.dtsi"
 #include "mt6370.dtsi"
 #include "mt6370_pd.dtsi"
-#ifdef CONFIG_CHARGER_RT9465
-#include "rt9465.dtsi"
-#endif

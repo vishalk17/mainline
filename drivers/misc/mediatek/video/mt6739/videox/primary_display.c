@@ -96,6 +96,7 @@
 #include "disp_arr.h"
 #include "disp_partial.h"
 #include "ddp_aal.h"
+#include "ddp_gamma.h"
 
 #define MMSYS_CLK_LOW (0)
 #define MMSYS_CLK_HIGH (1)
@@ -5291,6 +5292,7 @@ static int primary_frame_cfg_input(struct disp_frame_cfg_t *cfg)
 	unsigned int wdma_mva = 0;
 	disp_path_handle disp_handle;
 	struct cmdqRecStruct *cmdq_handle;
+	struct disp_ccorr_config m_ccorr_config = cfg->ccorr_config;
 
 	if (gTriggerDispMode > 0)
 		return 0;
@@ -5338,6 +5340,13 @@ static int primary_frame_cfg_input(struct disp_frame_cfg_t *cfg)
 
 	_config_ovl_input(cfg, disp_handle, cmdq_handle);
 
+	/* set ccorr matrix */
+	if (m_ccorr_config.is_dirty) {
+		disp_ccorr_set_color_matrix(cmdq_handle,
+			m_ccorr_config.color_matrix,
+			m_ccorr_config.mode);
+	}
+
 	if (primary_display_is_decouple_mode() && !primary_display_is_mirror_mode()) {
 		pgc->dc_buf_id++;
 		pgc->dc_buf_id %= DISP_INTERNAL_BUFFER_COUNT;
@@ -5378,8 +5387,14 @@ int primary_display_config_input_multiple(struct disp_session_input_config *sess
 	frame_cfg->setter = session_input->setter;
 	frame_cfg->input_layer_num = session_input->config_layer_num;
 	frame_cfg->overlap_layer_num = 4;
+	frame_cfg->ccorr_config = session_input->ccorr_config;
 
 	memcpy(frame_cfg->input_cfg, session_input->config, sizeof(frame_cfg->input_cfg));
+
+	if (disp_validate_ioctl_params(frame_cfg)) {
+		ret = -EINVAL;
+		goto out;
+	}
 
 	_primary_path_lock(__func__);
 
@@ -5389,6 +5404,7 @@ int primary_display_config_input_multiple(struct disp_session_input_config *sess
 
 	_primary_path_unlock(__func__);
 
+out:
 	kfree(frame_cfg);
 	return ret;
 }
@@ -5934,6 +5950,7 @@ int primary_display_get_info(struct disp_session_info *info)
 
 	dispif_info->displayWidth = primary_display_get_width();
 	dispif_info->displayHeight = primary_display_get_height();
+	dispif_info->density = DISP_GetDensity();
 
 	dispif_info->physicalWidth = DISP_GetActiveWidth();
 	dispif_info->physicalHeight = DISP_GetActiveHeight();
@@ -6436,6 +6453,18 @@ UINT32 DISP_GetScreenWidth(void)
 UINT32 DISP_GetScreenHeight(void)
 {
 	return primary_display_get_height();
+}
+UINT32 DISP_GetDensity(void)
+{
+	if (pgc->plcm == NULL) {
+		DISPERR("lcm handle is null!\n");
+		return 0;
+	}
+	if (pgc->plcm->params)
+		return pgc->plcm->params->density;
+
+	DISPERR("lcm_params is null!\n");
+	return 0;
 }
 
 UINT32 DISP_GetActiveHeight(void)

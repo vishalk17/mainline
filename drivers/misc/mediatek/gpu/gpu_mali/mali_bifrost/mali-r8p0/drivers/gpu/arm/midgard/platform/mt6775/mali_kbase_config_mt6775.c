@@ -58,13 +58,6 @@ int g_curFreqID;
 static int mtk_check_MFG_idle(void)
 {
 	u32 val;
-	val = readl(g_MFG_base + 0xb0);
-	writel(val & ~(0x1), g_MFG_base + 0xb0);
-	MFG_DEBUG("[MALI] 0x130000b0 val = 0x%x\n", readl(g_MFG_base + 0xb0));
-
-	val = readl(g_MFG_base + 0x10);
-	writel(val | (0x1 << 17), g_MFG_base + 0x10);
-	MFG_DEBUG("[MALI] 0x13000010 val = 0x%x\n", readl(g_MFG_base + 0x10));
 
 	val = readl(g_MFG_base + 0x180);
 	writel((val & ~(0xFF)) | 0x3, g_MFG_base + 0x180);
@@ -136,10 +129,6 @@ static void _mtk_pm_callback_power_off(void)
 {
 	struct mtk_config *config = g_config;
 
-	if (1) {
-		pr_alert("[MALI] power_off callback is disabled");
-		return;
-	}
 	if (!config) {
 		pr_alert("[MALI] power_off : mtk_config is NULL\n");
 		return;
@@ -159,14 +148,11 @@ static void _mtk_pm_callback_power_off(void)
 	/* Step 1 : turn off clocks by sequence */
 	mtk_check_MFG_idle();
 
-	MTKCLK_disable_unprepare(clk_mfg_cg);
-	MTKCLK_disable_unprepare(clk_mfg3);
-	MTKCLK_disable_unprepare(clk_mfg2);
-	MTKCLK_disable_unprepare(clk_mfg1);
-	MTKCLK_disable_unprepare(clk_mfg0);
+	/* mt_gpufreq_disable_CG(); */
+	/* mt_gpufreq_disable_MTCMOS(); */
 
-	/* Step 2 : enter low power mode */
-	mt_gpufreq_voltage_lpm_set(1);
+	/* Step 2 : turns the bucks off */
+	/* mt_gpufreq_voltage_enable_set(0); */
 
 	MFG_DEBUG("[MALI][-] power off\n");
 
@@ -178,10 +164,6 @@ static int _mtk_pm_callback_power_on(void)
 	struct mtk_config *config = g_config;
 	u32 val;
 
-	if (1) {
-		pr_alert("[MALI] power_on callback is disabled");
-		return 1;
-        }
 	if (!config) {
 		pr_alert("[MALI] power_on : mtk_config is NULL\n");
 		return -1;
@@ -191,22 +173,14 @@ static int _mtk_pm_callback_power_on(void)
 
 	MFG_DEBUG("[MALI][+] power on\n");
 
-	/* Step 1 : leave low power mode */
-	mt_gpufreq_voltage_lpm_set(0);
+	/* Step 1 : turns the buck on */
+	/* mt_gpufreq_voltage_enable_set(1); */
 
-	/* Step 2 : turn on clocks by sequence */
-	MTKCLK_prepare_enable(clk_mfg0);
-	MTKCLK_prepare_enable(clk_mfg1);
-	MTKCLK_prepare_enable(clk_mfg2);
-	MTKCLK_prepare_enable(clk_mfg3);
+	/* Step 2 : enable MTCMOS */
+	/* mt_gpufreq_enable_MTCMOS(); */
 
-	/* set Sync step before enable CG, bit[11:10]=01 */
-	udelay(100);
-	val = 0x400;
-	writel(val, g_MFG_base + 0x20);
-	udelay(100);
-
-	MTKCLK_prepare_enable(clk_mfg_cg);
+	/* Step 3 : enable CG*/
+	/* mt_gpufreq_enable_CG(); */
 
 	mtk_set_vgpu_power_on_flag(MTK_VGPU_POWER_ON);
 

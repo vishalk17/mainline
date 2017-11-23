@@ -35,7 +35,7 @@ static struct regulator *regulator_sram_l;
 static unsigned long apmixed_base	= 0x10212000;
 static unsigned long mcucfg_base	= 0x0c530000;
 
-#define APMIXED_NODE    "mediatek,apmixed"
+#define APMIXED_NODE    "mediatek,apmixedsys"
 #define MCUCFG_NODE     "mediatek,mcucfg"
 
 #define ARMPLL_L_CON1       (apmixed_base + 0x324)	/* ARMPLL2 */

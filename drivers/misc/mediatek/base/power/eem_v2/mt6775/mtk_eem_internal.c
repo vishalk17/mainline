@@ -97,11 +97,7 @@ struct eem_det eem_detectors[NR_EEM_DET] = {
 		.eem_step	= EEM_STEP,
 		.pmic_base	= CPU_L_PMIC_BASE,
 		.pmic_step	= CPU_L_PMIC_STEP,
-#if EEM_FAKE_EFUSE
-		.DETWINDOW	= DETWINDOW_VAL_FAKE,
-#else
 		.DETWINDOW	= DETWINDOW_VAL,
-#endif
 		.DTHI		= DTHI_VAL,
 		.DTLO		= DTLO_VAL,
 		.DETMAX		= DETMAX_VAL,
@@ -132,11 +128,7 @@ struct eem_det eem_detectors[NR_EEM_DET] = {
 		.eem_step	= EEM_STEP,
 		.pmic_base	= CPU_B_PMIC_BASE,
 		.pmic_step	= CPU_B_PMIC_STEP,
-#if EEM_FAKE_EFUSE
-		.DETWINDOW	= DETWINDOW_VAL_FAKE,
-#else
 		.DETWINDOW      = DETWINDOW_VAL,
-#endif
 		.DTHI		= DTHI_VAL,
 		.DTLO		= DTLO_VAL,
 		.DETMAX		= DETMAX_VAL,
@@ -167,11 +159,7 @@ struct eem_det eem_detectors[NR_EEM_DET] = {
 		.eem_step	= EEM_STEP,
 		.pmic_base	= CPU_CCI_PMIC_BASE,
 		.pmic_step	= CPU_CCI_PMIC_STEP,
-#if EEM_FAKE_EFUSE
-		.DETWINDOW	= DETWINDOW_VAL_FAKE,
-#else
 		.DETWINDOW      = DETWINDOW_VAL,
-#endif
 		.DTHI		= DTHI_VAL,
 		.DTLO		= DTLO_VAL,
 		.DETMAX		= DETMAX_VAL,
@@ -193,7 +181,8 @@ struct eem_det eem_detectors[NR_EEM_DET] = {
 		.volt_offset	= 0,
 #endif
 		.ctrl_id	= EEM_CTRL_GPU,
-		.features	= FEA_INIT01 | FEA_INIT02 | FEA_MON,
+		/* .features	= FEA_INIT01 | FEA_INIT02 | FEA_MON, */
+		.features	= 0,
 		.max_freq_khz	= 800000,/* MHz, Luise */
 		.VBOOT		= GPU_VBOOT_VAL, /* 10uV */
 		.VMAX		= GPU_VMAX_VAL,
@@ -202,11 +191,7 @@ struct eem_det eem_detectors[NR_EEM_DET] = {
 		.eem_step	= EEM_STEP,
 		.pmic_base	= GPU_PMIC_BASE,
 		.pmic_step	= GPU_PMIC_STEP,
-#if EEM_FAKE_EFUSE
-		.DETWINDOW	= DETWINDOW_VAL_FAKE,
-#else
 		.DETWINDOW	= DETWINDOW_VAL,
-#endif
 		.DTHI		= DTHI_VAL,
 		.DTLO		= DTLO_VAL,
 		.DETMAX		= DETMAX_VAL,
@@ -223,7 +208,7 @@ struct eem_det eem_detectors[NR_EEM_DET] = {
 };
 
 #if DUMP_DATA_TO_DE
-const unsigned int reg_dump_addr_off[100] = {
+const unsigned int reg_dump_addr_off[105] = {
 	0x0000,
 	0x0004,
 	0x0008,
@@ -277,6 +262,10 @@ const unsigned int reg_dump_addr_off[100] = {
 	0x00F4,
 	0x00F8,
 	0x00FC,
+	0x00FC, /* dump this for gpu thermal */
+	0x00FC, /* dump this for gpu thermal */
+	0x00FC, /* dump this for gpu thermal */
+	0x00FC, /* dump this for gpu thermal */
 	0x0C00,
 	0x0C04,
 	0x0C08,
@@ -311,6 +300,7 @@ const unsigned int reg_dump_addr_off[100] = {
 	0x0C7C,
 	0x0C80,
 	0x0C84,
+	0x0C88, /* dump thermal sensor */
 	0x0F00,
 	0x0F04,
 	0x0F08,

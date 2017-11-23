@@ -47,10 +47,12 @@
 
 #define EP_STAGE
 #ifdef EP_STAGE
+#if 0
 #define EP_MARK_SMI                   /* disable SMI related for EP */
 #define DUMMY_INT                       /* For early if load dont need to use camera*/
-#define EP_NO_CLKMGR                /* Clkmgr is not ready in early porting, en/disable clock  by hardcode */
 #define EP_NO_PMQOS                  /* If PMQoS is not ready on EP stage */
+#define EP_NO_CLKMGR                /* Clkmgr is not ready in early porting, en/disable clock  by hardcode */
+#endif
 #define EP_NO_K_LOG_ADJUST    /* EP no need to adjust upper bound of kernel log count */
 #endif
 
@@ -73,8 +75,6 @@
 #endif
 
 #if defined(ISP_MET_READY)
-/*MET:met mmsys profile*/
-#include <mt-plat/met_drv.h>
 #define CREATE_TRACE_POINTS
 #include "inc/met_events_camsys.h"
 #endif
@@ -303,7 +303,7 @@ static struct IspWorkqueTable isp_workque[ISP_IRQ_TYPE_AMOUNT] = {
 
 #include <linux/clk.h>
 struct ISP_CLK_STRUCT {
-	struct clk *ISP_SCP_SYS_MM0;
+	struct clk *ISP_SCP_SYS_DIS;
 	struct clk *ISP_SCP_SYS_ISP;
 	struct clk *ISP_SCP_SYS_CAM;
 	struct clk *ISP_CAM_CAMSYS;
@@ -389,7 +389,7 @@ static atomic_t G_u4DevNodeCt;
 int pr_detect_count;
 
 /*save ion fd*/
-/* #define ENABLE_KEEP_ION_HANDLE */
+#define ENABLE_KEEP_ION_HANDLE
 
 #ifdef ENABLE_KEEP_ION_HANDLE
 #define _ion_keep_max_   (64)/*32*/
@@ -839,19 +839,22 @@ int MET_Event_Get_BPP(enum _isp_dma_enum_ dmao, unsigned int reg_module)
 	return ret;
 }
 
-void MET_Events_Trace(bool enter, unsigned int reg_module)
+void MET_Events_Trace(bool enter, u32 reg_module, enum ISP_IRQ_TYPE_ENUM cam)
 {
 	if (enter) {
 		int imgo_en = 0, rrzo_en = 0, imgo_bpp, rrzo_bpp, imgo_xsize, imgo_ysize;
 		int rrzo_xsize, rrzo_ysize, rrz_src_w, rrz_src_h, rrz_dst_w;
 		int rrz_dst_h, rrz_hori_step, rrz_vert_step;
-		unsigned int dma_en, rrz_in, rrz_out;
+		u32 ctl_dma_en, rrz_in, rrz_out;
+		u32 ctl_en, ctl_en2;
 
-		dma_en = ISP_RD32(CAM_REG_CTL_DMA_EN(reg_module));
+		ctl_dma_en = ISP_RD32(CAM_REG_CTL_DMA_EN(reg_module));
+		ctl_en = ISP_RD32(CAM_REG_CTL_EN(reg_module));
+		ctl_en2 = ISP_RD32(CAM_REG_CTL_EN2(reg_module));
 		rrz_in = ISP_RD32(CAM_REG_RRZ_IN_IMG(reg_module));
 		rrz_out = ISP_RD32(CAM_REG_RRZ_OUT_IMG(reg_module));
-		imgo_en = dma_en & 0x1;
-		rrzo_en = dma_en & 0x4;
+		imgo_en = ctl_dma_en & 0x1;
+		rrzo_en = ctl_dma_en & 0x4;
 		imgo_bpp = MET_Event_Get_BPP(_imgo_, reg_module);
 		rrzo_bpp = MET_Event_Get_BPP(_rrzo_, reg_module);
 		imgo_xsize = (int)(ISP_RD32(CAM_REG_IMGO_XSIZE(reg_module)) & 0xFFFF);
@@ -865,10 +868,11 @@ void MET_Events_Trace(bool enter, unsigned int reg_module)
 		rrz_hori_step = (int)(ISP_RD32(CAM_REG_RRZ_HORI_STEP(reg_module)) & 0x3FFFF);
 		rrz_vert_step = (int)(ISP_RD32(CAM_REG_RRZ_VERT_STEP(reg_module)) & 0x3FFFF);
 
-		trace_ISP_Pass1_CAM_enter(imgo_en, rrzo_en, imgo_bpp, rrzo_bpp, imgo_xsize, imgo_ysize,
-		rrzo_xsize, rrzo_ysize, rrz_src_w, rrz_src_h, rrz_dst_w, rrz_dst_h, rrz_hori_step, rrz_vert_step);
+		trace_ISP__Pass1_CAM_enter(cam, imgo_en, rrzo_en, imgo_bpp, rrzo_bpp,
+		imgo_xsize, imgo_ysize, rrzo_xsize, rrzo_ysize, rrz_src_w, rrz_src_h, rrz_dst_w, rrz_dst_h,
+		rrz_hori_step, rrz_vert_step, ctl_en, ctl_dma_en, ctl_en2);
 	} else {
-		trace_ISP_Pass1_CAM_leave(0);
+		trace_ISP__Pass1_CAM_leave(cam, 0);
 	}
 }
 #endif
@@ -961,7 +965,7 @@ static void ISP_DumpDmaDeepDbg(enum ISP_IRQ_TYPE_ENUM module)
 	dmaerr[_flko_] = (unsigned int)ISP_RD32(CAM_REG_FLKO_ERR_STAT(regModule));
 	dmaerr[_rsso_] = (unsigned int)ISP_RD32(CAM_REG_RSSO_A_ERR_STAT(regModule));
 	dmaerr[_ufgo_] = (unsigned int)ISP_RD32(CAM_REG_UFGO_ERR_STAT(regModule));
-	dmaerr[_rawi_] = (unsigned int)ISP_RD32(CAM_UNI_REG_RAWI_ERR_STAT(regModule));
+	dmaerr[_rawi_] = (unsigned int)ISP_RD32(CAM_UNI_REG_RAWI_ERR_STAT(ISP_UNI_A_IDX));
 
 	IRQ_LOG_KEEPER(module, m_CurrentPPB, _LOG_ERR,
 		"camsys:0x%x", ISP_RD32(ISP_CAMSYS_CONFIG_BASE));
@@ -1021,9 +1025,9 @@ static inline void Prepare_Enable_ccf_clock(void)
 	smi_bus_enable(SMI_LARB3, ISP_DEV_NAME);
 	#endif
 
-	ret = clk_prepare_enable(isp_clk.ISP_SCP_SYS_MM0);
+	ret = clk_prepare_enable(isp_clk.ISP_SCP_SYS_DIS);
 	if (ret)
-		LOG_NOTICE("cannot pre-en ISP_SCP_SYS_MM0 clock\n");
+		LOG_NOTICE("cannot pre-en ISP_SCP_SYS_DIS clock\n");
 
 	ret = clk_prepare_enable(isp_clk.ISP_SCP_SYS_ISP);
 	if (ret)
@@ -1065,7 +1069,7 @@ static inline void Disable_Unprepare_ccf_clock(void)
 	clk_disable_unprepare(isp_clk.ISP_CAM_CAMSYS);
 	clk_disable_unprepare(isp_clk.ISP_SCP_SYS_CAM);
 	clk_disable_unprepare(isp_clk.ISP_SCP_SYS_ISP);
-	clk_disable_unprepare(isp_clk.ISP_SCP_SYS_MM0);
+	clk_disable_unprepare(isp_clk.ISP_SCP_SYS_DIS);
 
 	#ifndef EP_MARK_SMI
 	LOG_INF("disable CG/MTCMOS through SMI CLK API\n");
@@ -2136,6 +2140,9 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 	struct ion_handle *p_IonHnd;
 	#endif
 
+	struct ISP_CLK_INFO ispclks;
+	u32 lv = 0;
+
 	/*  */
 	if (pFile->private_data == NULL) {
 		LOG_NOTICE("private_data is NULL,(process, pid, tgid)=(%s, %d, %d)\n",
@@ -2568,8 +2575,19 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 #ifdef EP_NO_PMQOS
 	case ISP_DFS_CTRL:
 	case ISP_DFS_UPDATE:
-	case ISP_GET_SUPPORTED_ISP_CLOCKS:
 	case ISP_GET_CUR_ISP_CLOCK:
+		break;
+	case ISP_GET_SUPPORTED_ISP_CLOCKS:
+
+		/* Set a default clk for EP */
+		ispclks.clklevelcnt = 1;
+		ispclks.clklevel[lv] = 546;
+		LOG_NOTICE("Default DFS Clk level:%d for EP", ispclks.clklevel[lv]);
+
+		if (copy_to_user((void *)Param, &ispclks, sizeof(struct ISP_CLK_INFO)) != 0) {
+			LOG_NOTICE("copy_to_user failed");
+			Ret = -EFAULT;
+		}
 		break;
 #else
 	case ISP_DFS_CTRL:
@@ -2609,18 +2627,25 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		}
 		break;
 	case ISP_GET_SUPPORTED_ISP_CLOCKS:
+#if 0
 		/* To get how many clk levels this platform is supported */
 		ispclks.clklevelcnt = mmdvfs_qos_get_thres_count(&isp_qos, MMDVFS_PM_QOS_SUB_SYS_CAMERA);
 
-		if (ispclks.clklevelcnt > ISP_CLK_LEVEL_CNT)
+		if (ispclks.clklevelcnt > ISP_CLK_LEVEL_CNT) {
 			LOG_NOTICE("clklevelcnt is exceeded");
+			Ret = -EFAULT;
+			break;
+		}
 
 		for (; lv < ispclks.clklevelcnt; lv++) {
 			/* To get all clk level on this platform */
 			ispclks.clklevel[lv] = mmdvfs_qos_get_thres_value(&isp_qos, MMDVFS_PM_QOS_SUB_SYS_CAMERA, lv);
 			LOG_VRB("DFS Clk level:%d", ispclks.clklevel[lv]);
 		}
-
+#else
+		ispclks.clklevelcnt = 1;
+		ispclks.clklevel[lv] = 546;
+#endif
 		if (copy_to_user((void *)Param, &ispclks, sizeof(struct ISP_CLK_INFO)) != 0) {
 			LOG_NOTICE("copy_to_user failed");
 			Ret = -EFAULT;
@@ -3299,6 +3324,10 @@ static long ISP_ioctl_compat(struct file *filp, unsigned int cmd, unsigned long 
 	case ISP_ION_FREE_BY_HWMODULE:
 	case ISP_CQ_SW_PATCH:
 	case ISP_LARB_MMU_CTL:
+	case ISP_DFS_CTRL:
+	case ISP_DFS_UPDATE:
+	case ISP_GET_SUPPORTED_ISP_CLOCKS:
+	case ISP_GET_CUR_ISP_CLOCK:
 		return filp->f_op->unlocked_ioctl(filp, cmd, arg);
 	default:
 		return -ENOIOCTLCMD;
@@ -3829,13 +3858,6 @@ static int ISP_probe(struct platform_device *pDev)
 	isp_devs = _ispdev;
 
 
-	#if defined(ISP_MET_READY)
-	/*MET: met mmsys profile*/
-	if (met_mmsys_config_isp_base_addr)
-		met_mmsys_config_isp_base_addr((unsigned long *)isp_devs);
-	#endif
-
-
 	isp_dev = &(isp_devs[nr_isp_devs - 1]);
 	isp_dev->dev = &pDev->dev;
 
@@ -3937,19 +3959,18 @@ static int ISP_probe(struct platform_device *pDev)
 		#endif
 
 #ifndef EP_NO_CLKMGR /* CCF */
-		isp_clk.ISP_SCP_SYS_MM0 = devm_clk_get(&pDev->dev, "ISP_SCP_SYS_MM0");
+		isp_clk.ISP_SCP_SYS_DIS = devm_clk_get(&pDev->dev, "ISP_SCP_SYS_DIS");
 		isp_clk.ISP_SCP_SYS_ISP = devm_clk_get(&pDev->dev, "ISP_SCP_SYS_ISP");
 		isp_clk.ISP_SCP_SYS_CAM = devm_clk_get(&pDev->dev, "ISP_SCP_SYS_CAM");
-		isp_clk.ISP_CAM_CAMSYS = devm_clk_get(&pDev->dev, "ISP_CLK_CAM");
-		isp_clk.ISP_CAM_CAMTG = devm_clk_get(&pDev->dev, "ISP_CLK_CAMTG");
+		isp_clk.ISP_CAM_CAMSYS = devm_clk_get(&pDev->dev, "CAMSYS_CAM_CGPDN");
+		isp_clk.ISP_CAM_CAMTG = devm_clk_get(&pDev->dev, "CAMSYS_CAMTG_CGPDN");
+		isp_clk.ISP_CAM_CAMSV0 = devm_clk_get(&pDev->dev, "CAMSYS_CAMSV0_CGPDN");
+		isp_clk.ISP_CAM_CAMSV1 = devm_clk_get(&pDev->dev, "CAMSYS_CAMSV1_CGPDN");
+		isp_clk.ISP_CAM_CAMSV2 = devm_clk_get(&pDev->dev, "CAMSYS_CAMSV2_CGPDN");
 
-		isp_clk.ISP_CAM_CAMSV0 = devm_clk_get(&pDev->dev, "ISP_CLK_CAMSV0");
-		isp_clk.ISP_CAM_CAMSV1 = devm_clk_get(&pDev->dev, "ISP_CLK_CAMSV1");
-		isp_clk.ISP_CAM_CAMSV2 = devm_clk_get(&pDev->dev, "ISP_CLK_CAMSV2");
-
-		if (IS_ERR(isp_clk.ISP_SCP_SYS_MM0)) {
-			LOG_NOTICE("cannot get ISP_SCP_SYS_MM0 clock\n");
-			return PTR_ERR(isp_clk.ISP_SCP_SYS_MM0);
+		if (IS_ERR(isp_clk.ISP_SCP_SYS_DIS)) {
+			LOG_NOTICE("cannot get ISP_SCP_SYS_DIS clock\n");
+			return PTR_ERR(isp_clk.ISP_SCP_SYS_DIS);
 		}
 		if (IS_ERR(isp_clk.ISP_SCP_SYS_ISP)) {
 			LOG_NOTICE("cannot get ISP_SCP_SYS_ISP clock\n");
@@ -5891,16 +5912,12 @@ irqreturn_t ISP_Irq_CAM(enum ISP_IRQ_TYPE_ENUM irq_module)
 	#if defined(ISP_MET_READY)
 	/*MET:ISP EOF*/
 	if (IrqStatus & HW_PASS1_DON_ST) {
-		if (met_mmsys_event_isp_pass1_end)
-			met_mmsys_event_isp_pass1_end(cardinalNum);
-		MET_Events_Trace(0, reg_module);
+		MET_Events_Trace(0, reg_module, irq_module);
 	}
 
 	if (IrqStatus & SOF_INT_ST) {
 		/*met mmsys profile*/
-		if (met_mmsys_event_isp_pass1_begin)
-			met_mmsys_event_isp_pass1_begin(cardinalNum);
-		MET_Events_Trace(1, reg_module);
+		MET_Events_Trace(1, reg_module, irq_module);
 	}
 	#endif
 

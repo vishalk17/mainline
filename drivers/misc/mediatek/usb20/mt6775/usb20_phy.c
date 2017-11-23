@@ -192,7 +192,6 @@ bool usb_enable_clock(bool enable)
 	int res = -1;
 	unsigned long flags;
 
-	return 1;
 
 	DBG(1, "enable(%d),count(%d),<%d,%d,%d,%d>\n",
 	    enable, count, virt_enable, virt_disable, real_enable, real_disable);

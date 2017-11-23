@@ -23,12 +23,12 @@
 #define DUMP_DATA_TO_DE     (1)
 #define EEM_ENABLE          (1) /* enable; after pass HPT mini-SQC */
 #define EEM_FAKE_EFUSE      (0)
-#define UPDATE_TO_UPOWER    (1)
+/* FIX ME */
+#define UPDATE_TO_UPOWER    (0)
 #define EEM_LOCKTIME_LIMIT  (3000)
 #define ENABLE_EEMCTL0      (1)
 
 #define EEM_OFFSET
-#define EEM_ENABLE_TINYSYS_SSPM (0)
 #define SET_PMIC_VOLT           (1)
 #define SET_PMIC_VOLT_TO_DVFS   (1)
 #define LOG_INTERVAL            (2LL * NSEC_PER_SEC)
@@ -88,7 +88,8 @@ enum mt_cpu_dvfs_id {
 ******************************************
 */
 #define NR_HW_RES_FOR_BANK	(13) /* real eem banks for efuse */
-#define EEM_INIT01_FLAG		(0x0F) /* should be 0x0F */
+/* #define EEM_INIT01_FLAG		(0x0F) */
+#define EEM_INIT01_FLAG		(0x07) /* should be 0x0F */
 
 #define NR_FREQ 16
 #define NR_FREQ_GPU 16
@@ -99,7 +100,6 @@ enum mt_cpu_dvfs_id {
  * cycles of bclk_ck during INIT. 52 MHz
  */
 #define DETWINDOW_VAL		0xA28
-#define DETWINDOW_VAL_FAKE	0xA28
 
 /*
  * mili Volt to config value. voltage = 600mV + val * 6.25mV

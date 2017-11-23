@@ -28,6 +28,7 @@
 #include <mt-plat/mtk_chip.h>
 
 /* local include */
+#include "mtk_cpufreq_api.h"
 #include "mtk_upower.h"
 #include "mtk_unified_power_data.h"
 #include "mtk_devinfo.h"
@@ -182,6 +183,8 @@ void get_original_table(void)
 	/* unsigned int bin = 0; */
 	unsigned short idx = 0; /* default use FY table */
 	unsigned int i, j;
+
+	idx = mt_cpufreq_get_cpu_level();
 
 #if 0
 #define SEG_EFUSE 30

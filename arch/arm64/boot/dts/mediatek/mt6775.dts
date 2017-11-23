@@ -535,7 +535,7 @@ initrd=0x45000000,0x200000 loglevel=8 androidboot.selinux=permissive";
 			<0 0x10700000 0 0x1000>; /*MD_CCIF_BASE*/
 		interrupts = <GIC_SPI 172 IRQ_TYPE_LEVEL_HIGH>, /*IRQ_CLDMA*/
 			     <GIC_SPI 164 IRQ_TYPE_LEVEL_LOW>, /*IRQ_CCIF*/
-			     <GIC_SPI 289 IRQ_TYPE_EDGE_FALLING>; /*IRQ_MDWDT*/
+			     <GIC_SPI 361 IRQ_TYPE_EDGE_FALLING>; /*IRQ_MDWDT*/
 		mediatek,md_id = <0>;
 		mediatek,cldma_capability = <6>;
 		clocks =  <&scpsys SCP_SYS_MD1>,
@@ -839,6 +839,12 @@ initrd=0x45000000,0x200000 loglevel=8 androidboot.selinux=permissive";
 		interrupts = <GIC_SPI 184 IRQ_TYPE_LEVEL_LOW>;
 		clocks = <&infracfg_ao CLK_INFRA_THERM_BCLK>;
 		clock-names = "therm-main";
+	};
+
+	eem_fsm@102a0000 {
+		compatible = "mediatek,eem_fsm";
+		reg = <0 0x102a0000 0 0x1000>;
+		interrupts = <GIC_SPI 183 IRQ_TYPE_LEVEL_LOW>;
 	};
 
 	m4u@102b0000 {
@@ -1458,7 +1464,7 @@ initrd=0x45000000,0x200000 loglevel=8 androidboot.selinux=permissive";
 		mode = <2>;
 		multipoint = <1>;
 		num_eps = <16>;
-		/* clocks = <&infracfg_ao INFRACFG_AO_ICUSB_CG>; */
+		clocks = <&pericfg CLK_PERICFG_RG_USB_P1>;
 		clock-names = "usb0";
 	};
 
@@ -1810,9 +1816,25 @@ initrd=0x45000000,0x200000 loglevel=8 androidboot.selinux=permissive";
 		larbs = <&smi_larb0>, <&smi_larb1>, <&smi_larb2>, <&smi_larb3>,
 			<&smi_larb4>, <&smi_larb5>, <&smi_larb6>, <&smi_larb7>;
 		clocks = <&scpsys SCP_SYS_MM0>, <&mmsys_config CLK_MM_GALS_COMM0>,
-			<&mmsys_config CLK_MM_GALS_COMM1>, <&mmsys_config CLK_MM_SMI_COMMON>;
+			<&mmsys_config CLK_MM_GALS_COMM1>, <&mmsys_config CLK_MM_SMI_COMMON>,
+			<&topckgen CLK_TOP_SYSPLL_D2>,
+			<&topckgen CLK_TOP_MMPLL_D6>,
+			<&topckgen CLK_TOP_UNIVPLL_D5>,
+			<&topckgen CLK_TOP_MMPLL_D7>,
+			<&topckgen CLK_TOP_MMPLL_D8>,
+			<&topckgen CLK_TOP_SYSPLL_D3>,
+			<&topckgen CLK_TOP_MMPLL_D10>,
+			<&topckgen CLK_TOP_UNIVPLL1_D4>;
 		clock-names = "mtcmos-mm", "smi-common-gals-comm0",
-			"smi-common-gals-comm1", "smi-common";
+			"smi-common-gals-comm1", "smi-common",
+			"mmdvfs_clk_top_syspll_d2_ck",
+			"mmdvfs_clk_top_mmpll_d6_ck",
+			"mmdvfs_clk_top_univpll_d5_ck",
+			"mmdvfs_clk_top_mmpll_d7_ck",
+			"mmdvfs_clk_top_mmpll_d8_ck",
+			"mmdvfs_clk_top_syspll_d3_ck",
+			"mmdvfs_clk_top_mmpll_d10_ck",
+			"mmdvfs_clk_top_univpll1_d4_ck";
 	};
 
 	disp_rsz@1401a000 {
@@ -2306,6 +2328,10 @@ initrd=0x45000000,0x200000 loglevel=8 androidboot.selinux=permissive";
 		compatible = "mediatek,usb_iddig_bi_eint";
 	};
 
+	mse: mse {
+		compatible = "mediatek, mse";
+		status = "disabled";
+	};
 	kd_camera_hw1:kd_camera_hw1@1a040000 {
 		compatible = "mediatek,imgsensor";
 	};
@@ -2516,7 +2542,11 @@ initrd=0x45000000,0x200000 loglevel=8 androidboot.selinux=permissive";
 					dev = "/dev/block/platform/bootdevice/by-name/system";
 					type = "ext4";
 					mnt_flags = "ro";
+					#ifndef CONFIG_MTK_DM_VERITY_OFF
+					fsmgr_flags = "wait,verify";
+					#else
 					fsmgr_flags = "wait";
+					#endif
 				};
 #endif
 #ifndef CONFIG_MTK_LATE_MOUNT
@@ -2526,7 +2556,11 @@ initrd=0x45000000,0x200000 loglevel=8 androidboot.selinux=permissive";
 					type = "ext4";
 					mnt_flags = "ro";
 #ifndef CONFIG_MTK_AB_OTA_UPDATER
+					#ifndef CONFIG_MTK_DM_VERITY_OFF
+					fsmgr_flags = "wait,verify";
+					#else
 					fsmgr_flags = "wait";
+					#endif
 #else
 					#ifndef CONFIG_MTK_DM_VERITY_OFF
 					fsmgr_flags = "wait,slotselect,verify";

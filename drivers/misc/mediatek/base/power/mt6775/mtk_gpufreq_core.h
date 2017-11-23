@@ -13,9 +13,14 @@
 
 #ifndef _MT_GPUFREQ_CORE_H_
 #define _MT_GPUFREQ_CORE_H_
+#include <linux/types.h>
+/**************************************************
+ * MT6775 : Bring-up Setting
+ **************************************************/
+#define GPU_ALWAYS_ON 1
 
 /**************************************************
- * MT6763TT : GPU DVFS OPP table Setting
+ * MT6775 : GPU DVFS OPP table Setting
  **************************************************/
 #define GPU_DVFS_FREQ0					(800000)	/* KHz */
 #define GPU_DVFS_FREQ1					(764000)	/* KHz */
@@ -34,22 +39,71 @@
 #define GPU_DVFS_FREQ14				(341000)	/* KHz */
 #define GPU_DVFS_FREQ15				(310000)	/* KHz */
 
-#define GPU_DVFS_VOLT0					(80000)	/* mV x 100 */
-#define GPU_DVFS_VOLT1					(78125)	/* mV x 100 */
-#define GPU_DVFS_VOLT2					(76875)	/* mV x 100 */
-#define GPU_DVFS_VOLT3					(74375)	/* mV x 100 */
-#define GPU_DVFS_VOLT4					(72500)	/* mV x 100 */
-#define GPU_DVFS_VOLT5					(70000)	/* mV x 100 */
-#define GPU_DVFS_VOLT6					(69375)	/* mV x 100 */
-#define GPU_DVFS_VOLT7					(68125)	/* mV x 100 */
-#define GPU_DVFS_VOLT8					(67500)	/* mV x 100 */
-#define GPU_DVFS_VOLT9					(66250)	/* mV x 100 */
-#define GPU_DVFS_VOLT10				(65000)	/* mV x 100 */
-#define GPU_DVFS_VOLT11				(64375)	/* mV x 100 */
-#define GPU_DVFS_VOLT12				(63125)	/* mV x 100 */
-#define GPU_DVFS_VOLT13				(62500)	/* mV x 100 */
-#define GPU_DVFS_VOLT14				(61250)	/* mV x 100 */
-#define GPU_DVFS_VOLT15				(60000)	/* mV x 100 */
+#define GPU_DVFS_VOLT0						(82500)	/* mV x 100 */
+/* CT1: corner tightening setting 0 */
+#define GPU_DVFS_VOLT1_CT0					(80000)	/* mV x 100 */
+#define GPU_DVFS_VOLT2_CT0					(77500)	/* mV x 100 */
+#define GPU_DVFS_VOLT3_CT0					(75000)	/* mV x 100 */
+#define GPU_DVFS_VOLT4_CT0					(72500)	/* mV x 100 */
+#define GPU_DVFS_VOLT5_CT0					(70000)	/* mV x 100 */
+#define GPU_DVFS_VOLT6_CT0					(69375)	/* mV x 100 */
+#define GPU_DVFS_VOLT7_CT0					(68125)	/* mV x 100 */
+#define GPU_DVFS_VOLT8_CT0					(67500)	/* mV x 100 */
+#define GPU_DVFS_VOLT9_CT0					(66250)	/* mV x 100 */
+#define GPU_DVFS_VOLT10_CT0					(65000)	/* mV x 100 */
+#define GPU_DVFS_VOLT11_CT0					(64375)	/* mV x 100 */
+#define GPU_DVFS_VOLT12_CT0					(63125)	/* mV x 100 */
+#define GPU_DVFS_VOLT13_CT0					(62500)	/* mV x 100 */
+#define GPU_DVFS_VOLT14_CT0					(61250)	/* mV x 100 */
+#define GPU_DVFS_VOLT15_CT0					(60000)	/* mV x 100 */
+/* CT1: corner tightening setting 1, 0.6v->0.625v */
+#define GPU_DVFS_VOLT1_CT1					(80000)	/* mV x 100 */
+#define GPU_DVFS_VOLT2_CT1					(77500)	/* mV x 100 */
+#define GPU_DVFS_VOLT3_CT1					(75000)	/* mV x 100 */
+#define GPU_DVFS_VOLT4_CT1					(72500)	/* mV x 100 */
+#define GPU_DVFS_VOLT5_CT1					(70000)	/* mV x 100 */
+#define GPU_DVFS_VOLT6_CT1					(69375)	/* mV x 100 */
+#define GPU_DVFS_VOLT7_CT1					(68750)	/* mV x 100 */
+#define GPU_DVFS_VOLT8_CT1					(68125)	/* mV x 100 */
+#define GPU_DVFS_VOLT9_CT1					(67500)	/* mV x 100 */
+#define GPU_DVFS_VOLT10_CT1					(66250)	/* mV x 100 */
+#define GPU_DVFS_VOLT11_CT1					(65625)	/* mV x 100 */
+#define GPU_DVFS_VOLT12_CT1					(65000)	/* mV x 100 */
+#define GPU_DVFS_VOLT13_CT1					(64375)	/* mV x 100 */
+#define GPU_DVFS_VOLT14_CT1					(63750)	/* mV x 100 */
+#define GPU_DVFS_VOLT15_CT1					(62500)	/* mV x 100 */
+/* CT1: corner tightening setting 2, 0.7v->0.725v */
+#define GPU_DVFS_VOLT1_CT2					(80625)	/* mV x 100 */
+#define GPU_DVFS_VOLT2_CT2					(78750)	/* mV x 100 */
+#define GPU_DVFS_VOLT3_CT2					(76875)	/* mV x 100 */
+#define GPU_DVFS_VOLT4_CT2					(75000)	/* mV x 100 */
+#define GPU_DVFS_VOLT5_CT2					(72500)	/* mV x 100 */
+#define GPU_DVFS_VOLT6_CT2					(71250)	/* mV x 100 */
+#define GPU_DVFS_VOLT7_CT2					(70000)	/* mV x 100 */
+#define GPU_DVFS_VOLT8_CT2					(68750)	/* mV x 100 */
+#define GPU_DVFS_VOLT9_CT2					(67500)	/* mV x 100 */
+#define GPU_DVFS_VOLT10_CT2					(66250)	/* mV x 100 */
+#define GPU_DVFS_VOLT11_CT2					(65000)	/* mV x 100 */
+#define GPU_DVFS_VOLT12_CT2					(63750)	/* mV x 100 */
+#define GPU_DVFS_VOLT13_CT2					(62500)	/* mV x 100 */
+#define GPU_DVFS_VOLT14_CT2					(61250)	/* mV x 100 */
+#define GPU_DVFS_VOLT15_CT2					(60000)	/* mV x 100 */
+/* CT1: corner tightening setting 3, 0.6v->0.625v and 0.7v->0.725v */
+#define GPU_DVFS_VOLT1_CT3					(80625)	/* mV x 100 */
+#define GPU_DVFS_VOLT2_CT3					(78750)	/* mV x 100 */
+#define GPU_DVFS_VOLT3_CT3					(76875)	/* mV x 100 */
+#define GPU_DVFS_VOLT4_CT3					(75000)	/* mV x 100 */
+#define GPU_DVFS_VOLT5_CT3					(72500)	/* mV x 100 */
+#define GPU_DVFS_VOLT6_CT3					(71875)	/* mV x 100 */
+#define GPU_DVFS_VOLT7_CT3					(70625)	/* mV x 100 */
+#define GPU_DVFS_VOLT8_CT3					(70000)	/* mV x 100 */
+#define GPU_DVFS_VOLT9_CT3					(68750)	/* mV x 100 */
+#define GPU_DVFS_VOLT10_CT3					(67500)	/* mV x 100 */
+#define GPU_DVFS_VOLT11_CT3					(66875)	/* mV x 100 */
+#define GPU_DVFS_VOLT12_CT3					(65625)	/* mV x 100 */
+#define GPU_DVFS_VOLT13_CT3					(65000)	/* mV x 100 */
+#define GPU_DVFS_VOLT14_CT3					(63750)	/* mV x 100 */
+#define GPU_DVFS_VOLT15_CT3					(62500)	/* mV x 100 */
 
 #define GPUFREQ_LAST_FREQ_LEVEL_6775	(GPU_DVFS_FREQ15)
 
@@ -57,7 +111,6 @@
  * PMIC Setting
  **************************************************/
 #define PMIC_MAX_VGPU					(GPU_DVFS_VOLT0)
-#define PMIC_MIN_VGPU					(GPU_DVFS_VOLT15)
 
 #define DELAY_FACTOR					(1408)
 #define VGPU_ENABLE_TIME_US			(240)	/* spec is 220(us) */
@@ -126,14 +179,14 @@
 #define MT_GPUFREQ_DYNAMIC_POWER_TABLE_UPDATE
 #ifdef CONFIG_MTK_RAM_CONSOLE
 /* #define MT_GPUFREQ_AEE_RR_REC */
-/* #define MT_GPUFERQ_PBM_SUPPORT */
+#define MT_GPUFERQ_PBM_SUPPORT
 #endif
 
 /**************************************************
  * Battery Over Current Protect
  **************************************************/
 #ifdef MT_GPUFREQ_BATT_OC_PROTECT
-#define MT_GPUFREQ_BATT_OC_LIMIT_FREQ				GPU_DVFS_FREQ14	/* 442 MHz */
+#define MT_GPUFREQ_BATT_OC_LIMIT_FREQ				GPU_DVFS_FREQ10	/* 465 MHz */
 #endif
 
 /**************************************************
@@ -148,7 +201,7 @@
  **************************************************/
 #ifdef MT_GPUFREQ_LOW_BATT_VOLT_PROTECT
 #define MT_GPUFREQ_LOW_BATT_VOLT_LIMIT_FREQ_1		GPU_DVFS_FREQ0	/* no need to throttle when LV1 */
-#define MT_GPUFREQ_LOW_BATT_VOLT_LIMIT_FREQ_2		GPU_DVFS_FREQ14	/* 485 MHz */
+#define MT_GPUFREQ_LOW_BATT_VOLT_LIMIT_FREQ_2		GPU_DVFS_FREQ10	/* 465 MHz */
 #endif
 
 /**************************************************
@@ -247,6 +300,7 @@ struct g_clk_info {
 };
 struct g_pmic_info {
 	struct regulator *reg_vgpu;
+	struct regulator *reg_vsram_core;
 };
 /**
  * ===============================================
@@ -255,6 +309,7 @@ struct g_pmic_info {
  */
 
 typedef unsigned int u32;
+extern bool mtk_get_gpu_loading(unsigned int *pLoading);
 extern unsigned int mt_get_ckgen_freq(unsigned int);
 extern u32 get_devinfo_with_index(u32 index);
 #ifdef MT_GPUFREQ_AEE_RR_REC

@@ -251,8 +251,10 @@ void mtk_wdt_restart(enum wd_restart_type type)
 
 	if (!toprgu_base) {
 		toprgu_base = of_iomap(np_rgu, 0);
-		if (!toprgu_base)
+		if (!toprgu_base) {
 			pr_debug("RGU iomap failed\n");
+			return;
+		}
 		/* pr_debug("RGU base: 0x%p  RGU irq: %d\n", toprgu_base, wdt_irq_id); */
 	}
 #endif
@@ -337,8 +339,10 @@ void wdt_arch_reset(char mode)
 
 	if (!toprgu_base) {
 		toprgu_base = of_iomap(np_rgu, 0);
-		if (!toprgu_base)
+		if (!toprgu_base) {
 			pr_info("RGU iomap failed\n");
+			return;
+		}
 		pr_debug("RGU base: 0x%p  RGU irq: %d\n", toprgu_base, wdt_irq_id);
 	}
 #endif
@@ -585,8 +589,10 @@ int mtk_wdt_request_en_set(int mark_bit, enum wk_req_en en)
 	if (!toprgu_base) {
 		np_rgu = of_find_compatible_node(NULL, NULL, rgu_of_match[0].compatible);
 		toprgu_base = of_iomap(np_rgu, 0);
-		if (!toprgu_base)
+		if (!toprgu_base) {
 			pr_info("RGU iomap failed\n");
+			return -ENODEV;
+		}
 		pr_debug("RGU base: 0x%p  RGU irq: %d\n", toprgu_base, wdt_irq_id);
 	}
 
@@ -648,8 +654,10 @@ int mtk_wdt_request_mode_set(int mark_bit, enum wk_req_mode mode)
 	if (!toprgu_base) {
 		np_rgu = of_find_compatible_node(NULL, NULL, rgu_of_match[0].compatible);
 		toprgu_base = of_iomap(np_rgu, 0);
-		if (!toprgu_base)
+		if (!toprgu_base) {
 			pr_info("RGU iomap failed\n");
+			return -ENODEV;
+		}
 		pr_debug("RGU base: 0x%p  RGU irq: %d\n", toprgu_base, wdt_irq_id);
 	}
 
@@ -704,8 +712,10 @@ void mtk_wdt_set_c2k_sysrst(unsigned int flag, unsigned int shift)
 
 	if (!toprgu_base) {
 		toprgu_base = of_iomap(np_rgu, 0);
-		if (!toprgu_base)
+		if (!toprgu_base) {
 			pr_info("mtk_wdt_set_c2k_sysrst RGU iomap failed\n");
+			return;
+		}
 		pr_debug("mtk_wdt_set_c2k_sysrst RGU base: 0x%p  RGU irq: %d\n", toprgu_base, wdt_irq_id);
 	}
 #endif

@@ -1238,7 +1238,7 @@ static inline void handle_init01_isr(struct eem_det *det)
 	det->DCVOFFSETIN = ~(eem_read(EEM_DCVALUES) & 0xffff) + 1; /* hw bug, workaround */
 	/* check if DCVALUES is minus and set DCVOFFSETIN to zero */
 
-	if ((det->SPEC == 0x7) || (det->DCVOFFSETIN & 0x8000))
+	if (det->DCVOFFSETIN & 0x8000)
 		det->DCVOFFSETIN = 0;
 
 	det->AGEVOFFSETIN = eem_read(EEM_AGEVALUES) & 0xffff;
@@ -1446,7 +1446,8 @@ static inline void handle_init02_isr(struct eem_det *det)
 #endif
 	}
 
-	eem_set_eem_volt(det);
+	/* Fix me */
+	/* eem_set_eem_volt(det); */
 
 	/*
 	 * Set EEMEN.EEMINITEN/EEMEN.EEMINIT2EN = 0x0 &
@@ -1487,8 +1488,8 @@ static inline void handle_mon_mode_isr(struct eem_det *det)
 {
 	unsigned int i, verr = 0;
 #ifdef CONFIG_THERMAL
-	unsigned long long temp_long;
 #ifdef CONFIG_EEM_AEE_RR_REC
+	unsigned long long temp_long;
 	unsigned long long temp_cur = (unsigned long long)aee_rr_curr_ptp_temp();
 #endif
 #endif
@@ -1907,6 +1908,8 @@ static int eem_buck_get(struct platform_device *pdev)
 
 static void eem_buck_set_mode(unsigned int mode)
 {
+	return;
+#if 0
 	/* set pwm mode for each buck */
 	eem_debug("pmic set mode (%d)\n", mode);
 	if (mode) {
@@ -1918,6 +1921,7 @@ static void eem_buck_set_mode(unsigned int mode)
 		regulator_set_mode(eem_regulator_vproc2, REGULATOR_MODE_NORMAL);
 		regulator_set_mode(eem_regulator_vproc3, REGULATOR_MODE_NORMAL);
 	}
+#endif
 }
 
 void eem_init01(void)
@@ -1965,7 +1969,8 @@ void eem_init01(void)
 
 	/* CPU/GPU post-process */
 	eem_buck_set_mode(0);
-#ifdef CONFIG_MTK_GPU_SUPPORT
+/* #ifdef CONFIG_MTK_GPU_SUPPORT */
+#if 0
 	mt_gpufreq_enable_by_ptpod(); /* enable gpu DVFS */
 #endif
 	mt_ppm_ptpod_policy_deactivate();
@@ -2048,12 +2053,15 @@ static int eem_probe(struct platform_device *pdev)
 
 	/* CPU/GPU pre-process */
 	mt_ppm_ptpod_policy_activate();
-#ifdef CONFIG_MTK_GPU_SUPPORT
+/* #ifdef CONFIG_MTK_GPU_SUPPORT */
+#if 0
 	mt_gpufreq_disable_by_ptpod();
 #endif
+
 	ret = eem_buck_get(pdev);
 	if (ret != 0)
 		eem_error("eem_buck_get failed\n");
+
 	eem_buck_set_mode(1);
 
 	/* for slow idle */
@@ -2265,8 +2273,13 @@ static int eem_dump_proc_show(struct seq_file *m, void *v)
 
 	FUNC_ENTER(FUNC_LV_HELP);
 
-	for (i = 0; i < sizeof(struct eem_devinfo) / sizeof(unsigned int); i++)
-		seq_printf(m, "M_HW_RES%d\t= 0x%08X\n", i, val[i]);
+	for (i = 0; i < sizeof(struct eem_devinfo) / sizeof(unsigned int); i++) {
+		/* Depend on EFUSE location */
+		if (i < 10)
+			seq_printf(m, "M_HW_RES%d\t= 0x%08X\n", i, val[i]);
+		else
+			seq_printf(m, "M_HW_RES%d\t= 0x%08X\n", i + 6, val[i]);
+	}
 
 	for_each_det(det) {
 		for (i = EEM_PHASE_INIT01; i < NR_EEM_PHASE; i++) {
