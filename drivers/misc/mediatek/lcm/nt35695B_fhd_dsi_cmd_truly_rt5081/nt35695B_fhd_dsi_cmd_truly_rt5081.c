@@ -89,6 +89,7 @@ static const unsigned char LCD_MODULE_ID = 0x01;
 /* physical size in um */
 #define LCM_PHYSICAL_WIDTH									(74520)
 #define LCM_PHYSICAL_HEIGHT									(132480)
+#define LCM_DENSITY											(480)
 
 #define REGFLAG_DELAY		0xFFFC
 #define REGFLAG_UDELAY	0xFFFB
@@ -1354,6 +1355,7 @@ static void lcm_get_params(LCM_PARAMS *params)
 	params->physical_height = LCM_PHYSICAL_HEIGHT/1000;
 	params->physical_width_um = LCM_PHYSICAL_WIDTH;
 	params->physical_height_um = LCM_PHYSICAL_HEIGHT;
+	params->density            = LCM_DENSITY;
 
 #if (LCM_DSI_CMD_MODE)
 	params->dsi.mode = CMD_MODE;
@@ -1365,7 +1367,7 @@ static void lcm_get_params(LCM_PARAMS *params)
 	lcm_dsi_mode = SYNC_PULSE_VDO_MODE;
 #endif
 	LCM_LOGI("lcm_get_params lcm_dsi_mode %d\n", lcm_dsi_mode);
-	params->dsi.switch_mode_enable = 0;
+	params->dsi.switch_mode_enable = 1;
 
 	/* DSI */
 	/* Command mode setting */
@@ -1384,7 +1386,7 @@ static void lcm_get_params(LCM_PARAMS *params)
 
 	params->dsi.vertical_sync_active = 2;
 	params->dsi.vertical_backporch = 8;
-	params->dsi.vertical_frontporch = 10;
+	params->dsi.vertical_frontporch = 40;
 	params->dsi.vertical_active_line = FRAME_HEIGHT;
 
 	params->dsi.horizontal_sync_active = 10;

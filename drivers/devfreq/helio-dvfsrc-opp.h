@@ -17,6 +17,8 @@
 
 #if defined(CONFIG_MACH_MT6775)
 #include <helio-dvfsrc-opp-mt6775.h>
+#elif defined(CONFIG_MACH_MT6771)
+#include <helio-dvfsrc-opp-mt6771.h>
 #endif
 
 #endif

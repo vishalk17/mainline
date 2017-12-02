@@ -1521,10 +1521,21 @@ select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags)
 {
 	struct task_struct *curr;
 	struct rq *rq;
+	int this_cpu = smp_processor_id();
+	int sync = flags & WF_SYNC;
 
 	/* For anything but wake ups, just return the task_cpu */
 	if (sd_flag != SD_BALANCE_WAKE && sd_flag != SD_BALANCE_FORK)
 		goto out;
+
+	/* honors sync flag */
+	if (sync) {
+		cpumask_t search_cpus;
+
+		cpumask_and(&search_cpus, tsk_cpus_allowed(p), cpu_online_mask);
+		if (cpumask_test_cpu(this_cpu, &search_cpus))
+			return this_cpu;
+	}
 
 	rq = cpu_rq(cpu);
 
@@ -1832,6 +1843,8 @@ extern unsigned int hmp_cpu_is_slowest(int cpu)
 static int mt_sched_interop_rt(int cpu, struct cpumask *lowest_mask)
 {
 	int lowest_cpu = -1, lowest_prio = 0;
+	int lowest_preempt_cpu = -1, lowest_preempt_prio = 0;
+	struct thread_info *ti;
 
 	mt_sched_printf(sched_interop, "current cpu=%d, find idle cpu from cpumask 0x%lx",
 			cpu, lowest_mask->bits[0]);
@@ -1852,17 +1865,34 @@ static int mt_sched_interop_rt(int cpu, struct cpumask *lowest_mask)
 
 		rq = cpu_rq(cpu);
 		curr = rq->curr;
-		if ((curr->sched_class == &fair_sched_class) && (curr->prio > lowest_prio)) {
-			lowest_prio = curr->prio;
-			lowest_cpu = cpu;
+		ti = task_thread_info(curr);
 
-			mt_sched_printf(sched_interop, "lowest_cpu=%d, lowest_prio=%d",
-					lowest_cpu, lowest_prio);
+		if (curr->sched_class == &fair_sched_class) {
+
+			if (ti->preempt_count != 0) {
+				if (curr->prio > lowest_preempt_prio) {
+					lowest_preempt_prio = curr->prio;
+					lowest_preempt_cpu = cpu;
+					mt_sched_printf(sched_interop, "lowest_preempt_cpu=%d, lowest_preempt_prio=%d",
+						lowest_preempt_cpu, lowest_preempt_prio);
+				}
+			} else {
+				if (curr->prio > lowest_prio) {
+					lowest_prio = curr->prio;
+					lowest_cpu = cpu;
+
+					mt_sched_printf(sched_interop, "lowest_cpu=%d, lowest_prio=%d",
+						lowest_cpu, lowest_prio);
+				}
+			}
 		}
 	}
 
 	if (-1 != lowest_cpu)
 		return lowest_cpu;
+
+	if (-1 != lowest_preempt_cpu)
+		return lowest_preempt_cpu;
 
 	return -1;
 }

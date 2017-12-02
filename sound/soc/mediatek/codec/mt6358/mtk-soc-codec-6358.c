@@ -59,6 +59,10 @@
 #include <sound/pcm.h>
 #include <sound/soc.h>
 
+#ifdef CONFIG_MTK_ACCDET
+#include "accdet.h"
+#endif
+
 #ifdef CONFIG_MTK_AUXADC_INTF
 #include <mt-plat/mtk_auxadc_intf.h>
 #endif
@@ -72,6 +76,10 @@
 #ifdef CONFIG_MTK_VOW_SUPPORT
 #include <mach/vow_api.h>
 #endif
+
+#include <linux/of_gpio.h>
+#include <linux/gpio.h>
+
 
 /* HP IMPEDANCE Current Calibration from EFUSE */
 /* #define EFUSE_HP_IMPEDANCE */
@@ -99,7 +107,7 @@ static void VOW13MCK_Enable(bool enable);
 static void VOW32KCK_Enable(bool enable);
 #endif
 
-static struct mt6356_codec_priv *mCodec_data;
+static struct mt6358_codec_priv *mCodec_data;
 static unsigned int mBlockSampleRate[AUDIO_ANALOG_DEVICE_INOUT_MAX] = { 48000, 48000, 48000 };
 
 #define MAX_DL_SAMPLE_RATE (192000)
@@ -187,6 +195,9 @@ int (*set_lch_dc_compensation)(int value) = NULL;
 int (*set_rch_dc_compensation)(int value) = NULL;
 int (*set_ap_dmic)(bool enable) = NULL;
 int (*set_hp_impedance_ctl)(bool enable) = NULL;
+#ifdef CONFIG_MTK_VOW_SUPPORT
+static unsigned int MicbiasRef, GetMicbias;
+#endif /* #ifdef CONFIG_MTK_VOW_SUPPORT */
 
 static int reg_AFE_VOW_CFG0;			/* VOW AMPREF Setting */
 static int reg_AFE_VOW_CFG1;			/* VOW A,B timeout initial value (timer) */
@@ -569,14 +580,14 @@ static void VOW13MCK_Enable(bool enable)
 	mutex_lock(&Ana_Clk_Mutex);
 	if (enable == true) {
 		if (VOW13MCKCount == 0)
-			Ana_Set_Reg(TOP_CKPDN_CON3_CLR, 0x0040, 0x0040);
-		/* Enable  TOP_CKPDN_CON3 bit7 for enable VOW 13M clock */
+			Ana_Set_Reg(AUD_TOP_CKPDN_CON0_CLR, 0x2000, 0x2000);
+		/* Enable  AUD_TOP_CKPDN_CON0 bit13 for enable VOW 13M clock */
 		VOW13MCKCount++;
 	} else {
 		VOW13MCKCount--;
 		if (VOW13MCKCount == 0)
-			Ana_Set_Reg(TOP_CKPDN_CON3_SET, 0x0040, 0x0040);
-		/* disable TOP_CKPDN_CON3 bit7 for enable VOW 13M clock */
+			Ana_Set_Reg(AUD_TOP_CKPDN_CON0_SET, 0x2000, 0x2000);
+		/* disable AUD_TOP_CKPDN_CON0 bit13 for enable VOW 13M clock */
 
 		if (VOW13MCKCount < 0) {
 			pr_debug("VOW13MCKCount <0 =%d\n ", VOW13MCKCount);
@@ -592,14 +603,14 @@ static void VOW32KCK_Enable(bool enable)
 	mutex_lock(&Ana_Clk_Mutex);
 	if (enable == true) {
 		if (VOW32KCKCount == 0)
-			Ana_Set_Reg(TOP_CKPDN_CON3_CLR, 0x0020, 0x0020);
-		/* Enable  TOP_CKPDN_CON3 bit5 for enable VOW 32k clock (for periodic on/off use)*/
+			Ana_Set_Reg(AUD_TOP_CKPDN_CON0_CLR, 0x1000, 0x1000);
+		/* Enable  AUD_TOP_CKPDN_CON0 bit12 for enable VOW 32k clock (for periodic on/off use)*/
 		VOW32KCKCount++;
 	} else {
 		VOW32KCKCount--;
 		if (VOW32KCKCount == 0)
-			Ana_Set_Reg(TOP_CKPDN_CON3_SET, 0x0020, 0x0020);
-		/* disable TOP_CKPDN_CON3 bit5 for enable VOW 32k clock */
+			Ana_Set_Reg(AUD_TOP_CKPDN_CON0_SET, 0x1000, 0x1000);
+		/* disable AUD_TOP_CKPDN_CON0 bit12 for enable VOW 32k clock */
 
 		if (VOW32KCKCount < 0) {
 			pr_debug("VOW32KCKCount <0 =%d\n ", VOW32KCKCount);
@@ -1009,15 +1020,8 @@ static bool OpenHeadPhoneImpedanceSetting(bool bEnable)
 	if (bEnable == true) {
 		TurnOnDacPower(AUDIO_ANALOG_DEVICE_OUT_HEADSETL);
 
-		/* Disable headphone short-circuit protection */
-		Ana_Set_Reg(AUDDEC_ANA_CON0, 0x3000, 0xffff);
-		/* Disable handset short-circuit protection */
-		Ana_Set_Reg(AUDDEC_ANA_CON6, 0x0010, 0xffff);
-		/* Disable linout short-circuit protection */
-		Ana_Set_Reg(AUDDEC_ANA_CON7, 0x0010, 0xffff);
 		/* Reduce ESD resistance of AU_REFN */
 		Ana_Set_Reg(AUDDEC_ANA_CON2, 0x4000, 0xffff);
-
 		/* Turn on DA_600K_NCP_VA18 */
 		Ana_Set_Reg(AUDNCP_CLKDIV_CON1, 0x0001, 0xffff);
 		/* Set NCP clock as 604kHz // 26MHz/43 = 604KHz */
@@ -1039,25 +1043,39 @@ static bool OpenHeadPhoneImpedanceSetting(bool bEnable)
 		/* Disable AUD_ZCD */
 		Hp_Zcd_Enable(false);
 
+		/* Disable headphone short-circuit protection */
+		Ana_Set_Reg(AUDDEC_ANA_CON0, 0x3000, 0xffff);
+
 		/* Enable IBIST */
 		Ana_Set_Reg(AUDDEC_ANA_CON12, 0x0055, 0xffff);
+
 		/* Disable HPR/L STB enhance circuits */
 		Ana_Set_Reg(AUDDEC_ANA_CON2, 0x4000, 0xffff);
-		/* Enable HP main CMFB Switch */
-		Ana_Set_Reg(AUDDEC_ANA_CON9, 0x0200, 0xffff);
+
+		/* Disable Pull-down HPL/R to AVSS28_AUD */
+		Ana_Set_Reg(AUDDEC_ANA_CON4, 0x0000, 0xffff);
 
 		/* Enable AUD_CLK */
 		Ana_Set_Reg(AUDDEC_ANA_CON13, 0x1, 0x1);
+
 		/* Enable Audio L channel DAC */
 		Ana_Set_Reg(AUDDEC_ANA_CON0, 0x3009, 0xffff);
+
+		/* Enable Trim buffer VA28 reference */
+		Ana_Set_Reg(AUDDEC_ANA_CON9, 0x0002, 0x00ff);
 
 		/* Enable HPDET circuit, select DACLP as HPDET input and HPR as HPDET output */
 		Ana_Set_Reg(AUDDEC_ANA_CON8, 0x1900, 0xffff);
 
-		Ana_Set_Reg(AUDDEC_ANA_CON9, 0x0203, 0xffff);
+		/* Enable TRIMBUF circuit, select HPR as TRIMBUF input */
+		/* Set TRIMBUF gain as 18dB */
+		Ana_Set_Reg(AUDDEC_ANA_CON8, 0x1972, 0xffff);
 	} else {
 		/* disable HPDET circuit */
 		Ana_Set_Reg(AUDDEC_ANA_CON8, 0x0000, 0xff00);
+
+		/* Disable Trim buffer VA28 reference */
+		Ana_Set_Reg(AUDDEC_ANA_CON9, 0x0000, 0x00ff);
 
 		/* Disable Audio DAC */
 		Ana_Set_Reg(AUDDEC_ANA_CON0, 0x0000, 0x000f);
@@ -1077,18 +1095,15 @@ static bool OpenHeadPhoneImpedanceSetting(bool bEnable)
 		/* Disable HP aux CMFB loop */
 		Ana_Set_Reg(AUDDEC_ANA_CON9, 0x0, 0xff << 8);
 
-		/* Enable HP main CMFB Switch */
-		Ana_Set_Reg(AUDDEC_ANA_CON9, 0x2 << 8, 0xff << 8);
-
-		/* Pull-down HPL/R, HS, LO to AVSS28_AUD */
-		Ana_Set_Reg(AUDDEC_ANA_CON10, 0xa8, 0xff);
-
 		/* Disable IBIST */
 		Ana_Set_Reg(AUDDEC_ANA_CON12, 0x1 << 8, 0x1 << 8);
+
 		/* Disable NV regulator (-1.2V) */
 		Ana_Set_Reg(AUDDEC_ANA_CON15, 0x0, 0x1);
+
 		/* Disable cap-less LDOs (1.5V) */
 		Ana_Set_Reg(AUDDEC_ANA_CON14, 0x0, 0x1055);
+
 		/* Disable NCP */
 		Ana_Set_Reg(AUDNCP_CLKDIV_CON3, 0x1, 0x1);
 
@@ -1165,7 +1180,6 @@ static int mtk_calculate_hp_impedance(int dc_init, int dc_input,
 	return r_tmp;
 }
 
-#define PARALLEL_OHM 470
 static int detect_impedance(void)
 {
 	const unsigned int kDetectTimes = 8;
@@ -1283,16 +1297,6 @@ static int detect_impedance(void)
 			break;
 		}
 		usleep_range(1*200, 1*200);
-	}
-
-	if (PARALLEL_OHM != 0) {
-		if (impedance < PARALLEL_OHM) {
-			impedance = DIV_ROUND_CLOSEST(impedance * PARALLEL_OHM,
-						      PARALLEL_OHM - impedance);
-		} else {
-			pr_warn("%s(), PARALLEL_OHM %d <= impedance %d\n",
-				 __func__, PARALLEL_OHM, impedance);
-		}
 	}
 
 	pr_debug("%s(), phase %d [dc,detect]Sum %d times [%d,%d], hp_impedance %d, pick_impedance %d, AUXADC_CON10 0x%x\n",
@@ -1617,7 +1621,7 @@ static const struct snd_soc_dai_ops mt6323_aif1_dai_ops = {
 	.prepare = mt63xx_codec_prepare,
 };
 
-static struct snd_soc_dai_driver mtk_6356_dai_codecs[] = {
+static struct snd_soc_dai_driver mtk_6358_dai_codecs[] = {
 	{
 	 .name = MT_SOC_CODEC_TXDAI_NAME,
 	 .ops = &mt6323_aif1_dai_ops,
@@ -2616,7 +2620,7 @@ static int Voice_Amp_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_valu
 	return 0;
 }
 
-/* For MT6356 LO */
+/* For MT6358 LO */
 static void Apply_Speaker_Gain(void)
 {
 	Ana_Set_Reg(ZCD_CON1,
@@ -2927,9 +2931,6 @@ static void Headset_Speaker_Amp_Change(bool enable)
 		/* apply volume setting */
 		headset_volume_ramp(DL_GAIN_N_10DB,
 				    mCodec_data->mAudio_Ana_Volume[AUDIO_ANALOG_VOLUME_HPOUTL]);
-
-		/* HP IVBUF (Vin path) de-gain enable: -12dB */
-		Ana_Set_Reg(AUDDEC_ANA_CON10, 0x0004, 0xffff);
 
 		/* Set LO STB enhance circuits */
 		Ana_Set_Reg(AUDDEC_ANA_CON7, 0x0110, 0xffff);
@@ -3358,6 +3359,127 @@ static int pmic_dctrim_control_set(struct snd_kcontrol *kcontrol, struct snd_ctl
 	return 0;
 }
 
+/*
+* Temp solution, query gpio of PCB_ID of board
+*/
+enum AUDIO_MIC_MODE {
+	AUDIO_MIC_MODE_ACC = 1,
+	AUDIO_MIC_MODE_DCC,
+	AUDIO_MIC_MODE_DMIC,
+	AUDIO_MIC_MODE_DMIC_LP,
+	AUDIO_MIC_MODE_DCCECMDIFF,
+	AUDIO_MIC_MODE_DCCECMSINGLE,
+};
+
+#ifdef CONFIG_MT6771_QUERY_PCB_ID
+enum pcb_id_index {
+	PCD_ID_1 = 0, /* GPIO175 */
+	PCD_ID_2 = 1, /* GPIO111 */
+	PCD_ID_NUM = 2,
+};
+
+static int get_pcb_id_state(int pcd_id)
+{
+	struct device_node *node = NULL;
+	int gpionum;
+	int ret = -1;
+
+	pr_debug("%s\n", __func__);
+
+	node = of_find_compatible_node(NULL, NULL,
+				       "mediatek,mt_soc_codec_63xx");
+
+	if (!node) {
+		pr_debug("%s(), cannot find dts node!\n", __func__);
+		return ret;
+	}
+
+	gpionum = of_get_named_gpio(node, "pcbinfo", pcd_id);
+	if (gpionum < 0) {
+		pr_debug("%s(), cannot find pcbinfo node!\n", __func__);
+		return ret;
+	}
+
+	ret = gpio_request(gpionum, "info");
+	if (ret) {
+		pr_debug("%s(), request pcbinfo failed!\n", __func__);
+		return ret;
+	}
+
+	ret = gpio_get_value(gpionum);
+	pr_debug("%s(), gpio(%d) value = %d\n", __func__, gpionum, ret);
+
+	gpio_free(gpionum);
+
+	return ret;
+}
+
+static int get_mic_mode(void)
+{
+	int gpioval_1 = 0, gpioval_2 = 0;
+	int ret = -1;
+
+	pr_debug("%s\n", __func__);
+
+	gpioval_1 = get_pcb_id_state(PCD_ID_1);
+	if (gpioval_1 < 0) {
+		pr_debug("%s(), gpioval_1(%d) invalid\n", __func__, gpioval_1);
+		return ret;
+	}
+
+	gpioval_2 = get_pcb_id_state(PCD_ID_2);
+	if (gpioval_2 < 0) {
+		pr_debug("%s(), gpioval_2(%d) invalid\n", __func__, gpioval_2);
+		return ret;
+	}
+	/*
+	 *   Mapping rule:
+	 *
+	 *   PCB_ID2 PCB_ID1  Mic_Mode
+	 *       0     0      EVB_DCC
+	 *       0     1      Phone_DCC
+	 *       1     0      Phone_ACC
+	 *       1     1      Reserved
+	 *
+	 */
+	if ((gpioval_2 == 0) && (gpioval_1 == 0))
+		ret = AUDIO_MIC_MODE_DCC;
+	else if ((gpioval_2 == 0) && (gpioval_1 == 1))
+		ret = AUDIO_MIC_MODE_DCC;
+	else if ((gpioval_2 == 1) && (gpioval_1 == 0))
+		ret = AUDIO_MIC_MODE_ACC;
+	else
+		ret = AUDIO_MIC_MODE_ACC;
+
+	pr_debug("%s(), return  mic_mode = %d\n", __func__, ret);
+
+	return ret;
+}
+
+static int Audio_MIC_Mode_Get(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	int mic_mode = AUDIO_MIC_MODE_ACC;
+
+	pr_debug("%s()\n", __func__);
+	mic_mode = get_mic_mode();
+
+	if (mic_mode != -1)
+		ucontrol->value.integer.value[0] = mic_mode;
+	else
+		ucontrol->value.integer.value[0] = AUDIO_MIC_MODE_ACC;
+	pr_debug("%s(), return MIC_MODE: %ld\n",
+		 __func__, ucontrol->value.integer.value[0]);
+	return 0;
+}
+
+static int Audio_MIC_Mode_Set(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	pr_debug("%s(), not support\n", __func__);
+	return 0;
+}
+#endif
 static int hp_impedance_get(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *ucontrol)
 {
@@ -3441,7 +3563,7 @@ static const struct soc_enum Audio_DL_Enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(dctrim_control_state), dctrim_control_state)
 };
 
-static const struct snd_kcontrol_new mt6356_snd_controls[] = {
+static const struct snd_kcontrol_new mt6358_snd_controls[] = {
 	SOC_ENUM_EXT("Audio_Amp_R_Switch", Audio_DL_Enum[0], Audio_AmpR_Get,
 		     Audio_AmpR_Set),
 	SOC_ENUM_EXT("Audio_Amp_L_Switch", Audio_DL_Enum[1], Audio_AmpL_Get,
@@ -3487,6 +3609,10 @@ static const struct snd_kcontrol_new mt6356_snd_controls[] = {
 		       hp_impedance_get, hp_impedance_set),
 	SOC_ENUM_EXT("Headphone Plugged In", Audio_DL_Enum[0],
 		     hp_plugged_in_get, hp_plugged_in_set),
+#ifdef CONFIG_MT6771_QUERY_PCB_ID
+	SOC_SINGLE_EXT("Audio_MIC_Mode", SND_SOC_NOPM, 0, 6, 0,
+		       Audio_MIC_Mode_Get, Audio_MIC_Mode_Set),
+#endif
 };
 
 void SetMicPGAGain(void)
@@ -4176,9 +4302,12 @@ static void VOW_Pwr_Enable(int MicType, bool enable)
 
 static void VOW_DCC_CLK_Enable(bool enable)
 {
+	unsigned int pmic_version = Ana_Get_Reg(SWCID);
 	if (enable == true) {
 		VOW13MCK_Enable(true); /* 0x0258 VOW13M_CK power on */
-
+		/* DCC mode MT6358 E1 and E2 work around */
+		if ((pmic_version == 0x5810) || (pmic_version == 0x5820))
+			ClsqEnable(true);
 		/* PGA DCC CLK divider */
 		Ana_Set_Reg(AFE_DCCLK_CFG0,   0x2062, 0xFFE0);
 		/* DCC power down control: DCC clk output */
@@ -4194,21 +4323,28 @@ static void VOW_DCC_CLK_Enable(bool enable)
 		Ana_Set_Reg(AFE_DCCLK_CFG0,   0x2062, 0x0002);
 		/* PGA DCC CLK divider */
 		Ana_Set_Reg(AFE_DCCLK_CFG0,   0x2062, 0xFFE0);
-
+		/* DCC mode MT6358 E1 and E2 work around */
+		if ((pmic_version == 0x5810) || (pmic_version == 0x5820))
+			ClsqEnable(false);
 		VOW13MCK_Enable(false); /*VOW clock power down enable*/
 	}
 }
 
 static void VOW_ACC_CLK_Enable(bool enable)
 {
+	unsigned int pmic_version = Ana_Get_Reg(SWCID);
 	if (enable == true) {
 		VOW13MCK_Enable(true); /* VOW13M_CK power on */
-
+		/* DCC mode MT6358 E1 work around */
+		if (pmic_version == 0x5810)
+			ClsqEnable(true);
 		/* VOW source clock power on, vow_1p6m_800k_sel=1.6m */
 		Ana_Set_Reg(AFE_VOW_TOP, 0x4000, 0x8000);
 	} else {
 		Ana_Set_Reg(AFE_VOW_TOP, 0xC000, 0x8000);
-
+		/* DCC mode MT6358 E1 work around */
+		if (pmic_version == 0x5810)
+			ClsqEnable(false);
 		VOW13MCK_Enable(false); /*VOW clock power down enable*/
 	}
 }
@@ -4380,7 +4516,7 @@ static bool TurnOnVOWADcPower(int MicType, bool enable)
 
 	if (enable) {
 		mIsVOWOn = true;
-		SetVOWStatus(mIsVOWOn);
+		/* SetVOWStatus(mIsVOWOn); */
 
 		if (GetMicbias == 0) {
 			/* save current micbias ref set by accdet */
@@ -4549,7 +4685,7 @@ static bool TurnOnVOWADcPower(int MicType, bool enable)
 		VOW_Pwr_Enable(MicType, false);
 
 		mIsVOWOn = false;
-		SetVOWStatus(mIsVOWOn);
+		/* SetVOWStatus(mIsVOWOn); */
 		GetMicbias = 0;
 	}
 #endif /* #ifdef CONFIG_MTK_VOW_SUPPORT */
@@ -5531,7 +5667,7 @@ static const struct soc_enum Pmic_Test_Enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(Pmic_LPBK_function), Pmic_LPBK_function),
 };
 
-static const struct snd_kcontrol_new mt6356_pmic_Test_controls[] = {
+static const struct snd_kcontrol_new mt6358_pmic_Test_controls[] = {
 	SOC_ENUM_EXT("SineTable_DAC_HP", Pmic_Test_Enum[0], SineTable_DAC_HP_Get,
 		     SineTable_DAC_HP_Set),
 	SOC_ENUM_EXT("DAC_LOOP_DAC_HS", Pmic_Test_Enum[1], ADC_LOOP_DAC_HS_Get,
@@ -5547,7 +5683,7 @@ static const struct snd_kcontrol_new mt6356_pmic_Test_controls[] = {
 		       codec_debug_set),
 };
 
-static const struct snd_kcontrol_new mt6356_UL_Codec_controls[] = {
+static const struct snd_kcontrol_new mt6358_UL_Codec_controls[] = {
 	SOC_ENUM_EXT("Audio_ADC_1_Switch", Audio_UL_Enum[0], Audio_ADC1_Get,
 		     Audio_ADC1_Set),
 	SOC_ENUM_EXT("Audio_ADC_2_Switch", Audio_UL_Enum[1], Audio_ADC2_Get,
@@ -5696,7 +5832,7 @@ static int read_efuse_hp_impedance_current_calibration(void)
 	return value;
 }
 
-static const struct snd_soc_dapm_widget mt6356_dapm_widgets[] = {
+static const struct snd_soc_dapm_widget mt6358_dapm_widgets[] = {
 	/* Outputs */
 	SND_SOC_DAPM_OUTPUT("EARPIECE"),
 	SND_SOC_DAPM_OUTPUT("HEADSET"),
@@ -5707,7 +5843,7 @@ static const struct snd_soc_dapm_route mtk_audio_map[] = {
 	{"VOICE_Mux_E", "Voice Mux", "SPEAKER PGA"},
 };
 
-static void mt6356_codec_init_reg(struct snd_soc_codec *codec)
+static void mt6358_codec_init_reg(struct snd_soc_codec *codec)
 {
 	pr_debug("%s\n", __func__);
 
@@ -5772,7 +5908,7 @@ static void InitGlobalVarDefault(void)
 	NvRegCount = 0;
 }
 
-static int mt6356_codec_probe(struct snd_soc_codec *codec)
+static int mt6358_codec_probe(struct snd_soc_codec *codec)
 {
 	struct snd_soc_dapm_context *dapm = &codec->component.dapm;
 
@@ -5781,74 +5917,83 @@ static int mt6356_codec_probe(struct snd_soc_codec *codec)
 	if (mInitCodec == true)
 		return 0;
 
-	snd_soc_dapm_new_controls(dapm, mt6356_dapm_widgets, ARRAY_SIZE(mt6356_dapm_widgets));
+	snd_soc_dapm_new_controls(dapm, mt6358_dapm_widgets, ARRAY_SIZE(mt6358_dapm_widgets));
 	snd_soc_dapm_add_routes(dapm, mtk_audio_map, ARRAY_SIZE(mtk_audio_map));
 
 	/* add codec controls */
-	snd_soc_add_codec_controls(codec, mt6356_snd_controls, ARRAY_SIZE(mt6356_snd_controls));
-	snd_soc_add_codec_controls(codec, mt6356_UL_Codec_controls,
-				   ARRAY_SIZE(mt6356_UL_Codec_controls));
-	snd_soc_add_codec_controls(codec, mt6356_pmic_Test_controls,
-				   ARRAY_SIZE(mt6356_pmic_Test_controls));
+	snd_soc_add_codec_controls(codec, mt6358_snd_controls, ARRAY_SIZE(mt6358_snd_controls));
+	snd_soc_add_codec_controls(codec, mt6358_UL_Codec_controls,
+				   ARRAY_SIZE(mt6358_UL_Codec_controls));
+	snd_soc_add_codec_controls(codec, mt6358_pmic_Test_controls,
+				   ARRAY_SIZE(mt6358_pmic_Test_controls));
 
 	snd_soc_add_codec_controls(codec, Audio_snd_auxadc_controls,
 				   ARRAY_SIZE(Audio_snd_auxadc_controls));
 
 	/* here to set  private data */
-	mCodec_data = kzalloc(sizeof(struct mt6356_codec_priv), GFP_KERNEL);
+	mCodec_data = kzalloc(sizeof(struct mt6358_codec_priv), GFP_KERNEL);
 	if (!mCodec_data) {
 		/*pr_warn("Failed to allocate private data\n");*/
 		return -ENOMEM;
 	}
 	snd_soc_codec_set_drvdata(codec, mCodec_data);
 
-	memset((void *)mCodec_data, 0, sizeof(struct mt6356_codec_priv));
-	mt6356_codec_init_reg(codec);
+	memset((void *)mCodec_data, 0, sizeof(struct mt6358_codec_priv));
+	mt6358_codec_init_reg(codec);
 	InitCodecDefault();
 	efuse_current_calibrate = read_efuse_hp_impedance_current_calibration();
 	mInitCodec = true;
 
 	get_hp_lr_trim_offset();
 
+#ifdef CONFIG_MTK_ACCDET
+#ifdef CONFIG_MT6771_QUERY_PCB_ID
+	accdet_late_init(get_mic_mode());
+#else
+	/* By default, set mic mode as AUDIO_MIC_MODE_ACC */
+	accdet_late_init(AUDIO_MIC_MODE_ACC);
+#endif
+#endif
+
 	return 0;
 }
 
-static int mt6356_codec_remove(struct snd_soc_codec *codec)
+static int mt6358_codec_remove(struct snd_soc_codec *codec)
 {
 	return 0;
 }
 
-static unsigned int mt6356_read(struct snd_soc_codec *codec, unsigned int reg)
+static unsigned int mt6358_read(struct snd_soc_codec *codec, unsigned int reg)
 {
 	Ana_Get_Reg(reg);
 	return 0;
 }
 
-static int mt6356_write(struct snd_soc_codec *codec, unsigned int reg, unsigned int value)
+static int mt6358_write(struct snd_soc_codec *codec, unsigned int reg, unsigned int value)
 {
 	Ana_Set_Reg(reg, value, 0xffffffff);
 	return 0;
 }
 
 static struct snd_soc_codec_driver soc_mtk_codec = {
-	.probe = mt6356_codec_probe,
-	.remove = mt6356_codec_remove,
+	.probe = mt6358_codec_probe,
+	.remove = mt6358_codec_remove,
 
-	.read = mt6356_read,
-	.write = mt6356_write,
+	.read = mt6358_read,
+	.write = mt6358_write,
 
 	/* use add control to replace */
-	/* .controls = mt6356_snd_controls, */
-	/* .num_controls = ARRAY_SIZE(mt6356_snd_controls), */
+	/* .controls = mt6358_snd_controls, */
+	/* .num_controls = ARRAY_SIZE(mt6358_snd_controls), */
 
-	.dapm_widgets = mt6356_dapm_widgets,
-	.num_dapm_widgets = ARRAY_SIZE(mt6356_dapm_widgets),
+	.dapm_widgets = mt6358_dapm_widgets,
+	.num_dapm_widgets = ARRAY_SIZE(mt6358_dapm_widgets),
 	.dapm_routes = mtk_audio_map,
 	.num_dapm_routes = ARRAY_SIZE(mtk_audio_map),
 
 };
 
-static int mtk_mt6356_codec_dev_probe(struct platform_device *pdev)
+static int mtk_mt6358_codec_dev_probe(struct platform_device *pdev)
 {
 	pdev->dev.coherent_dma_mask = DMA_BIT_MASK(64);
 
@@ -5873,11 +6018,11 @@ static int mtk_mt6356_codec_dev_probe(struct platform_device *pdev)
 
 	pr_debug("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
 	return snd_soc_register_codec(&pdev->dev,
-				      &soc_mtk_codec, mtk_6356_dai_codecs,
-				      ARRAY_SIZE(mtk_6356_dai_codecs));
+				      &soc_mtk_codec, mtk_6358_dai_codecs,
+				      ARRAY_SIZE(mtk_6358_dai_codecs));
 }
 
-static int mtk_mt6356_codec_dev_remove(struct platform_device *pdev)
+static int mtk_mt6358_codec_dev_remove(struct platform_device *pdev)
 {
 	snd_soc_unregister_codec(&pdev->dev);
 	return 0;
@@ -5891,7 +6036,7 @@ static const struct of_device_id mt_soc_codec_63xx_of_ids[] = {
 };
 #endif
 
-static struct platform_driver mtk_codec_6356_driver = {
+static struct platform_driver mtk_codec_6358_driver = {
 	.driver = {
 		   .name = MT_SOC_CODEC_NAME,
 		   .owner = THIS_MODULE,
@@ -5899,45 +6044,45 @@ static struct platform_driver mtk_codec_6356_driver = {
 		   .of_match_table = mt_soc_codec_63xx_of_ids,
 #endif
 		   },
-	.probe = mtk_mt6356_codec_dev_probe,
-	.remove = mtk_mt6356_codec_dev_remove,
+	.probe = mtk_mt6358_codec_dev_probe,
+	.remove = mtk_mt6358_codec_dev_remove,
 };
 
 #ifndef CONFIG_OF
-static struct platform_device *soc_mtk_codec6356_dev;
+static struct platform_device *soc_mtk_codec6358_dev;
 #endif
 
-static int __init mtk_mt6356_codec_init(void)
+static int __init mtk_mt6358_codec_init(void)
 {
 	pr_debug("%s:\n", __func__);
 #ifndef CONFIG_OF
 	int ret = 0;
 
-	soc_mtk_codec6356_dev = platform_device_alloc(MT_SOC_CODEC_NAME, -1);
+	soc_mtk_codec6358_dev = platform_device_alloc(MT_SOC_CODEC_NAME, -1);
 
-	if (!soc_mtk_codec6356_dev)
+	if (!soc_mtk_codec6358_dev)
 		return -ENOMEM;
 
 
-	ret = platform_device_add(soc_mtk_codec6356_dev);
+	ret = platform_device_add(soc_mtk_codec6358_dev);
 	if (ret != 0) {
-		platform_device_put(soc_mtk_codec6356_dev);
+		platform_device_put(soc_mtk_codec6358_dev);
 		return ret;
 	}
 #endif
 	InitGlobalVarDefault();
 
-	return platform_driver_register(&mtk_codec_6356_driver);
+	return platform_driver_register(&mtk_codec_6358_driver);
 }
 
-module_init(mtk_mt6356_codec_init);
+module_init(mtk_mt6358_codec_init);
 
-static void __exit mtk_mt6356_codec_exit(void)
+static void __exit mtk_mt6358_codec_exit(void)
 {
-	platform_driver_unregister(&mtk_codec_6356_driver);
+	platform_driver_unregister(&mtk_codec_6358_driver);
 }
 
-module_exit(mtk_mt6356_codec_exit);
+module_exit(mtk_mt6358_codec_exit);
 
 /* Module information */
 MODULE_DESCRIPTION("MTK  codec driver");

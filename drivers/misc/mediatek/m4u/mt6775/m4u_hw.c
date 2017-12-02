@@ -27,7 +27,7 @@
 #include "smi_public.h"
 #endif
 
-static struct m4u_domain_t gM4uDomain;
+static struct m4u_domain gM4uDomain;
 
 static unsigned long gM4UBaseAddr[TOTAL_M4U_NUM];
 static unsigned long gLarbBaseAddr[SMI_LARB_NR];
@@ -39,9 +39,9 @@ static struct M4U_RANGE_DES_T gM4u0_seq[M4U0_SEQ_NR] = { {0} };
 
 /* static M4U_RANGE_DES_T gM4u1_seq[M4U1_SEQ_NR] = {{0}}; */
 static struct M4U_RANGE_DES_T *gM4USeq[] = { gM4u0_seq, NULL };
-static struct M4U_MAU_STATUS_T gM4u0_mau[M4U0_MAU_NR] = { {0} };
+/*static struct M4U_MAU_STATUS_T gM4u0_mau[M4U0_MAU_NR] = { {0} };*/
 
-static unsigned int gMAU_candidate_id = M4U0_MAU_NR - 1;
+/*static unsigned int gMAU_candidate_id = M4U0_MAU_NR - 1;*/
 
 static DEFINE_MUTEX(gM4u_seq_mutex);
 
@@ -123,7 +123,7 @@ static void m4u_invalid_tlb_all(int m4u_id)
 	m4u_invalid_tlb(m4u_id, gM4U_L2_enable, 1, 0, 0);
 }
 
-void m4u_invalid_tlb_by_range(struct m4u_domain_t *m4u_domain, unsigned int mva_start,
+void m4u_invalid_tlb_by_range(struct m4u_domain *m4u_domain, unsigned int mva_start,
 			      unsigned int mva_end)
 {
 	int i;
@@ -249,61 +249,6 @@ int mau_start_monitor(int m4u_id, int m4u_slave_id, int mau_set,
 	return 0;
 }
 
-int config_mau(struct M4U_MAU_STRUCT mau)
-{
-	int i;
-	int free_id = -1;
-	int m4u_id = m4u_port_2_m4u_id(mau.port);
-	int larb = m4u_port_2_larb_id(mau.port);
-	unsigned int MVAStart = mau.mva;
-	unsigned int MVAEnd = mau.mva + mau.size;
-	int larb_port = m4u_port_2_larb_port(mau.port);
-	int slave_id;
-
-	if (m4u_id == -1 || larb == -1 || larb_port == -1)
-		return -1;
-
-	slave_id = larb_2_m4u_slave_id(larb);
-	if (slave_id == -1)
-		return -1;
-
-	for (i = 0; i < M4U0_MAU_NR; i++) {
-		if (gM4u0_mau[i].Enabled != 0) {
-			if (MVAStart >= gM4u0_mau[i].MVAStart && MVAEnd <= gM4u0_mau[i].MVAEnd) {       /* no overlap */
-				if (mau.enable == 0) {
-					gM4u0_mau[i].Enabled = 0;
-					mau_start_monitor(0, 0, i, 0, 0, 0, 0, 0, 0, 0, 0);
-					continue;
-				}
-			}
-		} else
-			free_id = i;
-	}
-
-	if (mau.enable == 0)
-		return 0;
-
-	if (free_id == -1) {
-		if (mau.force == 0)
-			return -1;
-
-		free_id = gMAU_candidate_id;
-		if (gMAU_candidate_id == 0)
-			gMAU_candidate_id = M4U0_MAU_NR - 1;
-		else
-			gMAU_candidate_id--;
-
-	}
-
-	gM4u0_mau[free_id].Enabled = 1;
-	gM4u0_mau[free_id].MVAStart = MVAStart;
-	gM4u0_mau[free_id].MVAEnd = MVAEnd;
-	gM4u0_mau[free_id].port = mau.port;
-
-	mau_start_monitor(m4u_id, slave_id, free_id, (int)mau.write,
-			1, 0, 0, MVAStart, MVAEnd, 1 << larb_port, 1 << larb);
-	return free_id;
-}
 
 /* notes: you must fill cfg->m4u_id/m4u_slave_id/mau_set before call this func. */
 int mau_get_config_info(struct mau_config_info *cfg)
@@ -1183,8 +1128,10 @@ static int _m4u_config_port(int port, int virt, int sec, int dis, int dir)
 
 		larb = m4u_port_2_larb_id(port);
 		larb_port = m4u_port_2_larb_port(port);
-		if (larb == -1 || larb == 8 || larb_port == -1)
+		if (larb == -1 || larb == 8 || larb_port == -1) {
+			spin_unlock(&gM4u_reg_lock);
 			return -1;
+			}
 		larb_base = gLarbBaseAddr[larb];
 		m4uHw_set_field_by_mask(larb_base, SMI_LARB_NON_SEC_CONx(larb_port), F_SMI_MMU_EN, !!(virt));
 
@@ -1198,8 +1145,10 @@ static int _m4u_config_port(int port, int virt, int sec, int dis, int dir)
 		}
 	} else {
 		larb_port = m4u_port_2_larb_port(port);
-		if (larb_port == -1)
+		if (larb_port == -1) {
+			spin_unlock(&gM4u_reg_lock);
 			return -1;
+		}
 		m4uHw_set_field_by_mask(gPericfgBaseAddr, REG_PERIAXI_BUS_CTL3,
 					F_PERI_MMU_EN(larb_port, 1), F_PERI_MMU_EN(larb_port,
 										   !!(virt)));
@@ -1811,7 +1760,7 @@ int m4u_unregister_fault_callback(int port)
 	return 0;
 }
 
-int m4u_enable_tf(int port, bool fgenable)
+int m4u_enable_tf(unsigned int port, bool fgenable)
 {
 	if (port < 0 || port >= M4U_PORT_UNKNOWN) {
 		M4UMSG("%s fail,m port=%d\n", __func__, port);
@@ -2054,12 +2003,12 @@ irqreturn_t MTK_M4U_isr(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-struct m4u_domain_t *m4u_get_domain_by_port(M4U_PORT_ID port)
+struct m4u_domain *m4u_get_domain_by_port(M4U_PORT_ID port)
 {
 	return &gM4uDomain;
 }
 
-struct m4u_domain_t *m4u_get_domain_by_id(int id)
+struct m4u_domain *m4u_get_domain_by_id(int id)
 {
 	return &gM4uDomain;
 }
@@ -2069,7 +2018,7 @@ int m4u_get_domain_nr(void)
 	return 1;
 }
 
-int m4u_reg_init(struct m4u_domain_t *m4u_domain, unsigned long ProtectPA, int m4u_id)
+int m4u_reg_init(struct m4u_domain *m4u_domain, unsigned long ProtectPA, int m4u_id)
 {
 	unsigned int regval;
 	int i;

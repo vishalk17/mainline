@@ -60,31 +60,34 @@ unsigned int dpidle_blocking_stat[NR_GRPS][32];
 unsigned int idle_condition_mask[NR_TYPES][NR_GRPS] = {
 	/* dpidle_condition_mask */
 	[IDLE_TYPE_DP] = {
-		0x08040802,	/* INFRA0 */
+		0x00040802,	/* INFRA0 */
 		0x03AFB900,	/* INFRA1 */
-		0x000008C5,	/* INFRA2 */
-		0xFFFFFFFB,	/* MMSYS0 */
+		0x000000C5,	/* INFRA2 */
+		0xFFFFFC1B,	/* MMSYS0 */
 		0x00003FFF,	/* MMSYS1 */
+		0xBEF000B8, /* PWR_STATE */
 	},
 	/* soidle3_condition_mask */
 	[IDLE_TYPE_SO3] = {
-		0x0A040802,	/* INFRA0 */
+		0x02040802,	/* INFRA0 */
 		0x03AFB900,	/* INFRA1 */
-		0x000008D1,	/* INFRA2 */
-		0xFFFFFFFB,	/* MMSYS0 */
+		0x000000D1,	/* INFRA2 */
+		0xFFFFFC1B,	/* MMSYS0 */
 		0x00003FFF,	/* MMSYS1 */
+		0xBEF000B0, /* PWR_STATE */
 	},
 	/* soidle_condition_mask */
 	[IDLE_TYPE_SO] = {
-		0x08040802,	/* INFRA0 */
+		0x00040802,	/* INFRA0 */
 		0x03AFB900,	/* INFRA1 */
-		0x000008C1,	/* INFRA2 */
-		0x000FFFE0,	/* MMSYS0 */
+		0x000000C1,	/* INFRA2 */
+		0x000DFC00,	/* MMSYS0 */
 		0x00000D70,	/* MMSYS1 */
+		0xBEF000B0, /* PWR_STATE */
 	},
 	/* rgidle_condition_mask */
 	[IDLE_TYPE_RG] = {
-		0, 0, 0, 0, 0},
+		0, 0, 0, 0, 0, 0},
 };
 
 unsigned int soidle3_pll_condition_mask[NR_PLLS] = {
@@ -228,8 +231,8 @@ unsigned int clkmux_condition_mask[NF_CLKMUX][NF_CLKMUX_COND_SET] = {
 
 	/* CLK_CFG_7 */
 	[CLKMUX_SPM]
-		= { 2,
-			0x80, 0x00, 0x00, 0x00,
+		= { 0,
+			0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00 },
 	[CLKMUX_SSUSB_XHCI]
 		= { 2,
@@ -326,6 +329,7 @@ static const char *cg_group_name[NR_GRPS] = {
 	"INFRA2",
 	"MMSYS0",
 	"MMSYS1",
+	"PWR_STATE",
 };
 
 /*
@@ -383,6 +387,18 @@ static int sys_is_on(enum subsys_id id)
 	return (sta & mask) && (sta_s & mask);
 }
 
+static int is_clkmux_on(int id)
+{
+	unsigned int clkcfg = 0;
+	int reg_idx = id / 4;
+	int sub_idx = id % 4;
+	unsigned int mask[4] = {0x80000000, 0x00800000, 0x00008000, 0x00000080};
+
+	clkcfg = idle_readl(CLK_CFG(reg_idx));
+
+	return !(clkcfg & mask[sub_idx]);
+}
+
 static int is_pll_on(int id)
 {
 	return idle_readl(APMIXEDSYS(0x230 + id * 0x10)) & 0x1;
@@ -400,10 +416,12 @@ static void get_all_clock_state(u32 clks[NR_GRPS])
 	clks[CG_INFRA_2] = ~idle_readl(INFRA_SW_CG_2_STA);      /* INFRA2 */
 
 	/* MTCMOS DIS and MM_PLL */
-	if (sys_is_on(SYS_DIS) && is_pll_on(MM_PLL)) {
+	if (sys_is_on(SYS_DIS) && is_clkmux_on(CLKMUX_MM)) {
 		clks[CG_MMSYS0] = (~idle_readl(DISP_CG_CON_0));
 		clks[CG_MMSYS1] = (~idle_readl(DISP_CG_CON_1));
 	}
+
+	clks[CG_PWR_STATE] = idle_readl(SPM_PWR_STATUS);
 }
 
 static inline void mtk_idle_check_cg_internal(unsigned int block_mask[NR_TYPES][NF_CG_STA_RECORD], int idle_type)
@@ -601,6 +619,9 @@ static void get_all_clkcfg_state(u32 clkcfgs[NF_CLK_CFG])
 		clkcfgs[i] = idle_readl(CLK_CFG(i));
 }
 
+#define MUX_OFF_MASK    0x80
+#define MUX_ON_MASK     0x8F
+
 bool mtk_idle_check_clkmux(
 	int idle_type, unsigned int block_mask[NR_TYPES][NF_CLK_CFG])
 {
@@ -617,6 +638,7 @@ bool mtk_idle_check_clkmux(
 
 	int check_num;
 	u32 check_val;
+	u32 mux_check_mask;
 
 	get_all_clkcfg_state(clkcfgs);
 
@@ -627,13 +649,19 @@ bool mtk_idle_check_clkmux(
 		idx        = i / 4;
 		offset     = i % 4;
 		clkmux_val = ((clkcfgs[idx] & masks[offset]) >> shifts[offset]);
+
 		check_num = clkmux_condition_mask[i][0];
+
+		if (check_num == 0)
+			result = true;
 
 		for (k = 0; k < check_num; k++) {
 
 			check_val  = clkmux_condition_mask[i][1 + k];
 
-			if ((clkmux_val & 0xFF) == check_val) {
+			mux_check_mask = (k == 0) ? MUX_OFF_MASK : MUX_ON_MASK;
+
+			if ((clkmux_val & mux_check_mask) == check_val) {
 				result = true;
 				break;
 			}

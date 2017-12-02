@@ -15,9 +15,10 @@
 #define _MT_GPUFREQ_CORE_H_
 #include <linux/types.h>
 /**************************************************
- * MT6775 : Bring-up Setting
+ * MT6775 : Platform-dependent Setting
  **************************************************/
-#define GPU_ALWAYS_ON 1
+/* #define GPU_ALWAYS_ON 1 */
+#define GPUFREQ_SUPPORT_CT
 
 /**************************************************
  * MT6775 : GPU DVFS OPP table Setting
@@ -39,7 +40,25 @@
 #define GPU_DVFS_FREQ14				(341000)	/* KHz */
 #define GPU_DVFS_FREQ15				(310000)	/* KHz */
 
-#define GPU_DVFS_VOLT0						(82500)	/* mV x 100 */
+/* classic volt opp */
+#define GPU_DVFS_VOLT0					(80000)	/* mV x 100 */
+#define GPU_DVFS_VOLT1					(78125)	/* mV x 100 */
+#define GPU_DVFS_VOLT2					(76875)	/* mV x 100 */
+#define GPU_DVFS_VOLT3					(74375)	/* mV x 100 */
+#define GPU_DVFS_VOLT4					(72500)	/* mV x 100 */
+#define GPU_DVFS_VOLT5					(70000)	/* mV x 100 */
+#define GPU_DVFS_VOLT6					(69375)	/* mV x 100 */
+#define GPU_DVFS_VOLT7					(68125)	/* mV x 100 */
+#define GPU_DVFS_VOLT8					(67500)	/* mV x 100 */
+#define GPU_DVFS_VOLT9					(66250)	/* mV x 100 */
+#define GPU_DVFS_VOLT10				(65000)	/* mV x 100 */
+#define GPU_DVFS_VOLT11				(64375)	/* mV x 100 */
+#define GPU_DVFS_VOLT12				(63125)	/* mV x 100 */
+#define GPU_DVFS_VOLT13				(62500)	/* mV x 100 */
+#define GPU_DVFS_VOLT14				(61250)	/* mV x 100 */
+#define GPU_DVFS_VOLT15				(60000)	/* mV x 100 */
+/* CT volt opp*/
+#define GPU_DVFS_VOLT0_CT						(82500)	/* mV x 100 */
 /* CT1: corner tightening setting 0 */
 #define GPU_DVFS_VOLT1_CT0					(80000)	/* mV x 100 */
 #define GPU_DVFS_VOLT2_CT0					(77500)	/* mV x 100 */
@@ -110,7 +129,11 @@
 /**************************************************
  * PMIC Setting
  **************************************************/
+#ifdef GPUFREQ_SUPPORT_CT
+#define PMIC_MAX_VGPU					(GPU_DVFS_VOLT0_CT)
+#else
 #define PMIC_MAX_VGPU					(GPU_DVFS_VOLT0)
+#endif
 
 #define DELAY_FACTOR					(1408)
 #define VGPU_ENABLE_TIME_US			(240)	/* spec is 220(us) */
@@ -155,9 +178,9 @@
 /**************************************************
  * Reference Power Setting
  **************************************************/
-#define GPU_ACT_REF_POWER				(1018)	/* mW  */
-#define GPU_ACT_REF_FREQ				(950000)	/* KHz */
-#define GPU_ACT_REF_VOLT				(90000)	/* mV x 100 */
+#define GPU_ACT_REF_POWER				(1080)	/* mW  */
+#define GPU_ACT_REF_FREQ				(800000)	/* KHz */
+#define GPU_ACT_REF_VOLT				(80000)	/* mV x 100 */
 #define GPU_DVFS_PTPOD_DISABLE_VOLT	(80000)	/* mV x 100 */
 
 /**************************************************

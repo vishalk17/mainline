@@ -20,6 +20,17 @@
 #include "disp_session.h"
 #include "disp_lcm.h"
 #include "disp_helper.h"
+#ifdef CONFIG_MTK_QOS_SUPPORT
+#include <linux/pm_qos.h>
+#endif
+
+
+#ifdef CONFIG_MTK_QOS_SUPPORT
+extern struct pm_qos_request primary_display_qos_request;
+extern struct pm_qos_request primary_display_emi_opp_request;
+extern struct pm_qos_request primary_display_mm_freq_request;
+#endif
+
 enum DISP_PRIMARY_PATH_MODE {
 	DIRECT_LINK_MODE,
 	DECOUPLE_MODE,
@@ -49,6 +60,7 @@ extern unsigned int FB_LAYER;	/* default LCD layer */
 extern unsigned int ap_fps_changed;
 extern unsigned int arr_fps_backup;
 extern unsigned int arr_fps_enable;
+extern unsigned int round_corner_offset_enable;
 
 struct DISP_LAYER_INFO {
 	unsigned int id;
@@ -89,7 +101,8 @@ enum DISP_OP_STATE {
 enum DISP_POWER_STATE {
 	DISP_ALIVE = 0xf0,
 	DISP_SLEPT,
-	DISP_BLANK
+	DISP_BLANK,
+	DISP_FREEZE,
 };
 
 enum DISP_FRM_SEQ_STATE {
@@ -169,6 +182,7 @@ struct disp_mem_output_config {
 
 struct disp_internal_buffer_info {
 	struct list_head list;
+	struct ion_client *client;
 	struct ion_handle *handle;
 	struct sync_fence *pfence;
 	void *va;
@@ -240,6 +254,7 @@ struct display_primary_path_context {
 	int vsync_drop;
 	unsigned int dc_buf_id;
 	unsigned int dc_buf[DISP_INTERNAL_BUFFER_COUNT];
+	unsigned int freeze_buf;
 	unsigned int force_fps_keep_count;
 	unsigned int force_fps_skip_count;
 	cmdqBackupSlotHandle cur_config_fence;
@@ -311,6 +326,13 @@ int primary_display_get_height(void);
 int primary_display_get_virtual_width(void);
 int primary_display_get_virtual_height(void);
 int primary_display_get_bpp(void);
+#ifdef CONFIG_MTK_ROUND_CORNER_SUPPORT
+int primary_display_get_lcm_corner_en(void);
+int primary_display_get_corner_pattern_width(void);
+int primary_display_get_corner_pattern_height(void);
+void *primary_display_get_corner_pattern_top_va(void);
+void *primary_display_get_corner_pattern_bottom_va(void);
+#endif
 int primary_display_get_pages(void);
 int primary_display_set_overlay_layer(struct primary_disp_input_config *input);
 int primary_display_is_alive(void);
@@ -427,6 +449,7 @@ extern unsigned int islcmconnected;
 size_t mtkfb_get_fb_size(void);
 
 int primary_fps_ctx_set_wnd_sz(unsigned int wnd_sz);
+int primary_fps_ctx_get_fps(unsigned int *fps, int *stable);
 int primary_fps_ext_ctx_set_interval(unsigned int interval);
 
 int dynamic_debug_msg_print(unsigned int mva, int w, int h, int pitch, int bytes_per_pix);
@@ -439,5 +462,6 @@ int primary_display_config_full_roi(struct disp_ddp_path_config *pconfig, disp_p
 int primary_display_set_scenario(int scenario);
 enum DISP_MODULE_ENUM _get_dst_module_by_lcm(struct disp_lcm_handle *plcm);
 extern void check_mm0_clk_sts(void);
+int display_freeze_mode(int enable, int need_lock);
 
 #endif

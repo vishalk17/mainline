@@ -23,7 +23,7 @@
 
 
 #ifdef CONFIG_MTK_TINYSYS_SSPM_SUPPORT
-/*#define IPIMB*/ /* disable for Bring up */
+#define IPIMB /* disable for Bring up */
 #endif
 
 extern unsigned int pmic_ipi_test_code(void);
@@ -68,5 +68,11 @@ extern unsigned int gPMICREGDbgLvl;
 	if (gPMICREGDbgLvl >= PMIC_LOG_DBG) \
 		pr_notice(PMICTAG "%s: " fmt, __func__, ##arg); \
 } while (0)
+
+/* MT6358 Export API */
+extern unsigned int pmic_scp_set_vcore(unsigned int);
+extern unsigned int pmic_scp_set_vcore_sleep(unsigned int);
+extern unsigned int pmic_scp_set_vsram_vcore(unsigned int);
+extern unsigned int pmic_scp_set_vsram_vcore_sleep(unsigned int);
 
 #endif				/* _MT_PMIC_INFO_H_ */

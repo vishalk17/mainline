@@ -151,6 +151,7 @@ extern LCM_DRIVER nt35595_fhd_dsi_cmd_truly_nt50358_6735_720p_lcm_drv;
 extern LCM_DRIVER nt35596_fhd_dsi_vdo_yassy_lcm_drv;
 extern LCM_DRIVER nt35596_hd720_dsi_vdo_truly_tps65132_lcm_drv;
 extern LCM_DRIVER nt35590_hd720_dsi_cmd_truly2_lcm_drv;
+extern LCM_DRIVER nt36672_fhdp_dsi_vdo_auo_lcm_drv;
 extern LCM_DRIVER otm9608_wvga_dsi_cmd_drv;
 extern LCM_DRIVER otm9608_fwvga_dsi_cmd_drv;
 extern LCM_DRIVER otm9608_qhd_dsi_cmd_drv;
@@ -292,6 +293,8 @@ extern LCM_DRIVER nt35695B_fhd_dsi_vdo_auo_rt5081_hdp_lcm_drv;
 extern LCM_DRIVER oppo_tianma_td4310_fhdp_dsi_vdo_nt50358_lcm_drv;
 extern LCM_DRIVER nt36672_fhdp_dsi_vdo_tianma_nt50358_lcm_drv;
 extern LCM_DRIVER jd9365_hd720_dsi_lcm_drv;
+extern LCM_DRIVER otm1901a_fhd_dsi_vdo_tpv_lcm_drv;
+extern LCM_DRIVER st7789h2_dbi_c_3wire_lcm_drv;
 #ifdef BUILD_LK
 extern void mdelay(unsigned long msec);
 #endif

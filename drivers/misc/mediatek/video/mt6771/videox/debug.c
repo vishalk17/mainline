@@ -651,6 +651,13 @@ static void process_dbg_opt(const char *opt)
 
 		DISPMSG("will set option %s to %d\n", option, value);
 		disp_helper_set_option_by_name(option, value);
+	} else if (strncmp(opt, "repaint:", 8) == 0) {
+		int repaint_type;
+
+		ret = sscanf(opt, "repaint:%d\n", &repaint_type);
+		trigger_repaint(repaint_type);
+
+		return;
 	} else if (strncmp(opt, "switch_mode:", 12) == 0) {
 		int session_id = MAKE_DISP_SESSION(DISP_SESSION_PRIMARY, 0);
 		int sess_mode;
@@ -1066,9 +1073,7 @@ static void process_dbg_opt(const char *opt)
 
 		ret = sscanf(opt, "enable_display_ut:%d\n", &index);
 		enable_display_ut(index);
-	}
-
-	if (strncmp(opt, "primary_basic_test:", 19) == 0) {
+	} else if (strncmp(opt, "primary_basic_test:", 19) == 0) {
 		unsigned int layer_num, w, h, fmt, frame_num, vsync_num, x, y, r, g, b, a;
 		unsigned int layer_en_mask, cksum;
 		int mode;
@@ -1098,9 +1103,7 @@ static void process_dbg_opt(const char *opt)
 
 		primary_display_basic_test(layer_num, layer_en_mask, w, h, fmt, frame_num,
 			vsync_num, x, y, r, g, b, a, mode, cksum);
-	}
-
-	if (strncmp(opt, "pan_disp_test:", 13) == 0) {
+	} else if (strncmp(opt, "pan_disp_test:", 13) == 0) {
 		int frame_num;
 		int bpp;
 
@@ -1111,16 +1114,12 @@ static void process_dbg_opt(const char *opt)
 		}
 
 		pan_display_test(frame_num, bpp);
-	}
-
-	if (strncmp(opt, "dsi_ut:restart_vdo_mode", 23) == 0) {
+	} else if (strncmp(opt, "dsi_ut:restart_vdo_mode", 23) == 0) {
 		dpmgr_path_stop(primary_get_dpmgr_handle(), CMDQ_DISABLE);
 		primary_display_diagnose();
 		dpmgr_path_start(primary_get_dpmgr_handle(), CMDQ_DISABLE);
 		dpmgr_path_trigger(primary_get_dpmgr_handle(), NULL, CMDQ_DISABLE);
-	}
-
-	if (strncmp(opt, "dsi_ut:restart_cmd_mode", 23) == 0) {
+	} else if (strncmp(opt, "dsi_ut:restart_cmd_mode", 23) == 0) {
 		dpmgr_path_stop(primary_get_dpmgr_handle(), CMDQ_DISABLE);
 		primary_display_diagnose();
 
@@ -1131,9 +1130,7 @@ static void process_dbg_opt(const char *opt)
 
 		dpmgr_path_start(primary_get_dpmgr_handle(), CMDQ_DISABLE);
 		dpmgr_path_trigger(primary_get_dpmgr_handle(), NULL, CMDQ_DISABLE);
-	}
-
-	if (strncmp(opt, "scenario:", 8) == 0) {
+	} else if (strncmp(opt, "scenario:", 8) == 0) {
 		int scen;
 
 		ret = sscanf(opt, "scenario:%d\n", &scen);
@@ -1142,15 +1139,13 @@ static void process_dbg_opt(const char *opt)
 			return;
 		}
 		primary_display_set_scenario(scen);
-	}
-	if (strncmp(opt, "layout_noncontinous:", 20) == 0) {
+	} else if (strncmp(opt, "layout_noncontinous:", 20) == 0) {
 		ret = sscanf(opt, "layout_noncontinuous:%d\n", &layer_layout_allow_non_continuous);
 		if (ret != 1) {
 			DDPPR_ERR("%d error to parse cmd %s\n", __LINE__, opt);
 			return;
 		}
-	}
-	if (strncmp(opt, "idle_wait:", 10) == 0) {
+	} else if (strncmp(opt, "idle_wait:", 10) == 0) {
 		ret = sscanf(opt, "idle_wait:%d\n", &idle_check_interval);
 		if (ret != 1) {
 			DDPPR_ERR("%d error to parse cmd %s\n", __LINE__, opt);
@@ -1158,8 +1153,7 @@ static void process_dbg_opt(const char *opt)
 		}
 		idle_check_interval = idle_check_interval < 17 ? 17 : idle_check_interval;
 		DISPMSG("change idle interval to %dms\n", idle_check_interval);
-	}
-	if (strncmp(opt, "layer_statistic:", 16) == 0) {
+	} else if (strncmp(opt, "layer_statistic:", 16) == 0) {
 		ret = sscanf(opt, "layer_statistic:%d\n", &layer_statistic_enable);
 		if (ret != 1) {
 			DDPPR_ERR("%d error to parse cmd %s\n", __LINE__, opt);
@@ -1167,9 +1161,32 @@ static void process_dbg_opt(const char *opt)
 		}
 		if (!layer_statistic_enable)
 			disp_layer_info_statistic_reset();
-	}
-	if (strncmp(opt, "check_clk", 9) == 0)
+	} else if (strncmp(opt, "check_clk", 9) == 0)
 		ddp_clk_check();
+	else if (strncmp(opt, "round_corner_offset_debug:", 26) == 0) {
+		if (strncmp(opt + 26, "on", 2) == 0)
+			round_corner_offset_enable = 1;
+		else if (strncmp(opt + 26, "off", 3) == 0)
+			round_corner_offset_enable = 0;
+	} else if (strncmp(opt, "ovl_bgcolor", 11) == 0) {
+		unsigned int bgcolor;
+
+		ret = sscanf(opt, "ovl_bgcolor:0x%x\n", &bgcolor);
+		if (ret != 1) {
+			DDPPR_ERR("%d error to parse cmd %s\n", __LINE__, opt);
+			return;
+		}
+		gOVLBackground = bgcolor;
+	} else if (strncmp(opt, "ovl_dimcolor", 12) == 0) {
+		unsigned int dimcolor;
+
+		ret = sscanf(opt, "ovl_dimcolor:0x%x\n", &dimcolor);
+		if (ret != 1) {
+			DDPPR_ERR("%d error to parse cmd %s\n", __LINE__, opt);
+			return;
+		}
+		govldimcolor = dimcolor;
+	}
 }
 
 static void process_dbg_cmd(char *cmd)

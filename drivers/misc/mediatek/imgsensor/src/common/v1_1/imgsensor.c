@@ -51,6 +51,7 @@
 #include "imgsensor_hw.h"
 #include "imgsensor_i2c.h"
 #include "imgsensor_proc.h"
+#include "imgsensor_oc.h"
 #include "imgsensor.h"
 
 #ifdef CONFIG_MTK_SMI_EXT
@@ -176,6 +177,11 @@ MINT32 imgsensor_sensor_open(struct IMGSENSOR_SENSOR *psensor)
 		} else {
 			psensor_inst->state = IMGSENSOR_STATE_OPEN;
 		}
+
+#ifdef IMGSENSOR_OC_ENABLE
+		if (ret == ERROR_NONE)
+			imgsensor_oc_interrupt(IMGSENSOR_HW_POWER_STATUS_ON);
+#endif
 
 #ifdef CONFIG_MTK_CCU
 		ccuSensorInfo.slave_addr = (psensor_inst->i2c_cfg.pinst->msg->addr << 1);
@@ -333,6 +339,10 @@ MINT32 imgsensor_sensor_close(struct IMGSENSOR_SENSOR *psensor)
 	if (psensor_func && psensor_func->SensorClose && psensor_inst) {
 
 		imgsensor_mutex_lock(psensor_inst);
+
+#ifdef IMGSENSOR_OC_ENABLE
+		imgsensor_oc_interrupt(IMGSENSOR_HW_POWER_STATUS_OFF);
+#endif
 
 		psensor_func->psensor_inst = psensor_inst;
 
@@ -730,16 +740,19 @@ static inline int adopt_CAMERA_HW_FeatureControl(void *pBuf)
 		break;
 
 	case SENSOR_FEATURE_SET_DRIVER:
-		{
-			psensor->inst.sensor_idx = pFeatureCtrl->InvokeCamera;
-			if (imgsensor_set_driver(psensor) != -EIO) {
-				memcpy(pFeaturePara,
-				       psensor->inst.psensor_list,
-				       sizeof(struct IMGSENSOR_SENSOR_LIST));
-			}
-
-			break;
+	{
+		struct IMGSENSOR_SENSOR_LIST *psensor_list =
+			(struct IMGSENSOR_SENSOR_LIST *)pFeaturePara;
+		psensor->inst.sensor_idx = pFeatureCtrl->InvokeCamera;
+		if (imgsensor_set_driver(psensor) != -EIO) {
+			psensor_list->id = psensor->inst.psensor_list->id;
+			memcpy(psensor_list->name,
+			       psensor->inst.psensor_list->name,
+			       32);
 		}
+
+		break;
+	}
 
 	case SENSOR_FEATURE_CHECK_IS_ALIVE:
 		imgsensor_check_is_alive(psensor);
@@ -1578,6 +1591,7 @@ static int imgsensor_probe(struct platform_device *pplatform_device)
 	imgsensor_i2c_create();
 	imgsensor_proc_init();
 	imgsensor_init_sensor_list();
+	imgsensor_oc_init();
 
 #ifdef CONFIG_MTK_SMI_EXT
 	mmdvfs_register_mmclk_switch_cb(mmsys_clk_change_cb, MMDVFS_CLIENT_ID_ISP);

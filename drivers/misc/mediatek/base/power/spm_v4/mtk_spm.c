@@ -542,7 +542,7 @@ static void __spm_check_dram_type(void)
 	int ddr_type = get_ddr_type();
 	int ddr_hz = get_dram_data_rate();
 
-	if (ddr_type == TYPE_LPDDR4X && ddr_hz == 3733)
+	if (ddr_type == TYPE_LPDDR4X && ddr_hz == 3600)
 		__spmfw_idx = SPMFW_LP4X_2CH_3733;
 	else if (ddr_type == TYPE_LPDDR4X && ddr_hz == 3200)
 		__spmfw_idx = SPMFW_LP4X_2CH_3200;
@@ -861,16 +861,16 @@ static struct ddrphy_golden_cfg ddrphy_setting_lp4_2ch[] = {
 	{PHY_AO_CHB, 0x16a0, 0xfff80000, 0x00200000},
 	{PHY_AO_CHA, 0x0d20, 0xfff80000, 0x00000000},
 	{PHY_AO_CHB, 0x0d20, 0xfff80000, 0x00000000},
-	{PHY_AO_CHA, 0x1120, 0xfff80000, 0x00000000},
-	{PHY_AO_CHB, 0x1120, 0xfff80000, 0x00000000},
+	{PHY_AO_CHA, 0x1220, 0xfff80000, 0x00000000},
+	{PHY_AO_CHB, 0x1220, 0xfff80000, 0x00000000},
 	{PHY_AO_CHA, 0x1720, 0xfff80000, 0x00000000},
 	{PHY_AO_CHB, 0x1720, 0xfff80000, 0x00000000},
 	{PHY_AO_CHA, 0x0298, 0x00770000, 0x00770000},
 	{PHY_AO_CHB, 0x0298, 0x00770000, 0x00770000},
 	{PHY_AO_CHA, 0x02a8, 0x0c000000, 0x00000000},
 	{PHY_AO_CHB, 0x02a8, 0x0c000000, 0x00000000},
-	{PHY_AO_CHA, 0x028c, 0xffffffff, 0x8060037e},
-	{PHY_AO_CHB, 0x028c, 0xffffffff, 0x8060037e},
+	{PHY_AO_CHA, 0x028c, 0xffffffff, 0x806003be},
+	{PHY_AO_CHB, 0x028c, 0xffffffff, 0x806003be},
 	{PHY_AO_CHA, 0x0084, 0x00100000, 0x00000000},
 	{PHY_AO_CHB, 0x0084, 0x00100000, 0x00000000},
 	{PHY_AO_CHA, 0x0104, 0x00100000, 0x00000000},
@@ -934,16 +934,16 @@ static struct ddrphy_golden_cfg ddrphy_setting_lp3_1ch[] = {
 	{PHY_AO_CHB, 0x16a0, 0xfff80000, 0x00200000},
 	{PHY_AO_CHA, 0x0d20, 0xfff80000, 0x00000000},
 	{PHY_AO_CHB, 0x0d20, 0xfff80000, 0x00200000},
-	{PHY_AO_CHA, 0x1120, 0xfff80000, 0x00000000},
-	{PHY_AO_CHB, 0x1120, 0xfff80000, 0x00200000},
+	{PHY_AO_CHA, 0x1220, 0xfff80000, 0x00000000},
+	{PHY_AO_CHB, 0x1220, 0xfff80000, 0x00200000},
 	{PHY_AO_CHA, 0x1720, 0xfff80000, 0x00000000},
 	{PHY_AO_CHB, 0x1720, 0xfff80000, 0x00200000},
 	{PHY_AO_CHA, 0x0298, 0x00770000, 0x00570000},
 	{PHY_AO_CHB, 0x0298, 0x00770000, 0x00070000},
 	{PHY_AO_CHA, 0x02a8, 0x0c000000, 0x00000000},
 	{PHY_AO_CHB, 0x02a8, 0x0c000000, 0x00000000},
-	{PHY_AO_CHA, 0x028c, 0xffffffff, 0x8060037e},
-	{PHY_AO_CHB, 0x028c, 0xffffffff, 0x8060037e},
+	{PHY_AO_CHA, 0x028c, 0xffffffff, 0x806003be},
+	{PHY_AO_CHB, 0x028c, 0xffffffff, 0x806003be},
 	{PHY_AO_CHA, 0x0084, 0x00100000, 0x00000000},
 	{PHY_AO_CHB, 0x0084, 0x00100000, 0x00000000},
 	{PHY_AO_CHA, 0x0104, 0x00100000, 0x00000000},
@@ -1032,7 +1032,7 @@ int spm_golden_setting_cmp(bool en)
 		ddrphy_setting = ddrphy_setting_lp4_2ch;
 		ddrphy_num = ARRAY_SIZE(ddrphy_setting_lp4_2ch);
 		break;
-	case SPMFW_LP3_1CH:
+	case SPMFW_LP3_1CH_1866:
 		ddrphy_setting = ddrphy_setting_lp3_1ch;
 		ddrphy_num = ARRAY_SIZE(ddrphy_setting_lp3_1ch);
 		break;

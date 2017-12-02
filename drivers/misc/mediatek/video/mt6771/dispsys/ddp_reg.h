@@ -20,7 +20,7 @@
 #include "cmdq_core.h"
 #include "ddp_hal.h"
 
-/* #define ENABLE_CLK_MGR */
+#define ENABLE_CLK_MGR
 
 #define UINT32 unsigned int
 
@@ -84,6 +84,7 @@
 
 
 
+extern cmdqBackupSlotHandle dispsys_slot;
 
 /* DTS will assign reigister address dynamically, so can not define to 0x1000 */
 /* #define DISP_INDEX_OFFSET 0x1000 */
@@ -106,6 +107,7 @@
 #define DISPSYS_DSI0_BASE		    ddp_get_module_va(DISP_MODULE_DSI0)
 #define DISPSYS_DSI1_BASE		    ddp_get_module_va(DISP_MODULE_DSI1)
 #define DISPSYS_DPI_BASE		    ddp_get_module_va(DISP_MODULE_DPI)
+#define DISPSYS_DBI_BASE			ddp_get_module_va(DISP_MODULE_DBI)
 #define DISPSYS_PWM0_BASE		    ddp_get_module_va(DISP_MODULE_PWM0)
 #define DISPSYS_MUTEX_BASE			ddp_get_module_va(DISP_MODULE_MUTEX)
 #define DISPSYS_SMI_LARB0_BASE		ddp_get_module_va(DISP_MODULE_SMI_LARB0)
@@ -113,6 +115,7 @@
 #define DISPSYS_SMI_COMMON_BASE		ddp_get_module_va(DISP_MODULE_SMI_COMMON)
 #define DISPSYS_MIPITX0_BASE				ddp_get_module_va(DISP_MODULE_MIPI0)
 #define DISPSYS_MIPITX1_BASE				ddp_get_module_va(DISP_MODULE_MIPI1)
+#define DISPSYS_SLOT_BASE		    dispsys_slot
 
 #ifdef INREG32
 #undef INREG32
@@ -230,6 +233,14 @@ static inline unsigned long disp_addr_convert(unsigned long va)
 		}  \
 	} while (0)
 
+#define DISP_SLOT_SET(handle, hSlot, idx, val) \
+	do { \
+		if (handle != NULL) { \
+			if (hSlot) \
+				cmdqRecBackupUpdateSlot(handle, hSlot, idx, val); \
+		}  \
+	} while (0)
+
 /* Helper macros for local command queue */
 #define DISP_CMDQ_BEGIN(__cmdq, scenario) \
 	do { \
@@ -257,5 +268,6 @@ static inline unsigned long disp_addr_convert(unsigned long va)
 #include "ddp_reg_dsi.h"
 #include "ddp_reg_mipi.h"
 #include "ddp_reg_dpi.h"
+#include "ddp_reg_dbi.h"
 
 #endif /* _DDP_REG_H_ */

@@ -422,6 +422,7 @@ UINT32 DISP_GetActiveHeight(void);
 UINT32 DISP_GetActiveWidth(void);
 UINT32 DISP_GetActiveHeightUm(void);
 UINT32 DISP_GetActiveWidthUm(void);
+UINT32 DISP_GetDensity(void);
 unsigned long get_dim_layer_mva_addr(void);
 int disp_hal_allocate_framebuffer(phys_addr_t pa_start, phys_addr_t pa_end, unsigned long *va,
 				  unsigned long *mva);
@@ -450,4 +451,8 @@ enum DISP_MODULE_ENUM _get_dst_module_by_lcm(struct disp_lcm_handle *plcm);
 extern void check_mm0_clk_sts(void);
 int display_freeze_mode(int enable, int need_lock);
 
+extern unsigned int dump_output;
+extern unsigned int dump_output_comp;
+extern void *composed_buf;
+extern struct completion dump_buf_comp;
 #endif

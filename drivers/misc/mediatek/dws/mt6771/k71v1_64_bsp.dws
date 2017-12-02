@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--dct_version="2.5" buid_sn="161102" dws_modification_time="10.23.2017.09:48:50"-->
+<!--dct_version="2.5" buid_sn="161102" dws_modification_time="11.16.2017.14:14:06"-->
 <dct_cfg>
     <general chip="MT6771">
         <proj>Sylvia</proj>
@@ -112,10 +112,10 @@
                 <debounce_en>Disable</debounce_en>
             </eint10>
             <eint20>
-                <varName>IRQ_NFC</varName>
+                <varName>GOODIX_FP</varName>
                 <debounce_time>0</debounce_time>
                 <polarity>High</polarity>
-                <sensitive_level>Level</sensitive_level>
+                <sensitive_level>Edge</sensitive_level>
                 <debounce_en>Disable</debounce_en>
             </eint20>
             <eint41>
@@ -125,6 +125,13 @@
                 <sensitive_level>Level</sensitive_level>
                 <debounce_en>Disable</debounce_en>
             </eint41>
+            <eint44>
+                <varName>DSI_TE</varName>
+                <debounce_time>0</debounce_time>
+                <polarity>High</polarity>
+                <sensitive_level>Edge</sensitive_level>
+                <debounce_en>Disable</debounce_en>
+            </eint44>
             <eint182>
                 <varName>MAIN_PMIC</varName>
                 <debounce_time>0</debounce_time>
@@ -287,9 +294,9 @@
             </gpio12>
             <gpio13>
                 <eint_mode>false</eint_mode>
-                <def_mode>4</def_mode>
+                <def_mode>2</def_mode>
                 <inpull_en>true</inpull_en>
-                <inpull_selhigh>true</inpull_selhigh>
+                <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
                 <out_high>false</out_high>
                 <smt>false</smt>
@@ -297,7 +304,7 @@
             </gpio13>
             <gpio14>
                 <eint_mode>false</eint_mode>
-                <def_mode>4</def_mode>
+                <def_mode>2</def_mode>
                 <inpull_en>false</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>OUT</def_dir>
@@ -307,17 +314,17 @@
             </gpio14>
             <gpio15>
                 <eint_mode>false</eint_mode>
-                <def_mode>4</def_mode>
+                <def_mode>2</def_mode>
                 <inpull_en>true</inpull_en>
-                <inpull_selhigh>true</inpull_selhigh>
-                <def_dir>IN</def_dir>
+                <inpull_selhigh>false</inpull_selhigh>
+                <def_dir>OUT</def_dir>
                 <out_high>false</out_high>
                 <smt>false</smt>
                 <ies>true</ies>
             </gpio15>
             <gpio16>
                 <eint_mode>false</eint_mode>
-                <def_mode>4</def_mode>
+                <def_mode>2</def_mode>
                 <inpull_en>false</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>OUT</def_dir>
@@ -1345,17 +1352,17 @@
             </gpio112>
             <gpio113>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
-                <inpull_en>false</inpull_en>
+                <def_mode>0</def_mode>
+                <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
-                <def_dir>OUT</def_dir>
+                <def_dir>IN</def_dir>
                 <out_high>false</out_high>
                 <smt>false</smt>
                 <ies>true</ies>
             </gpio113>
             <gpio114>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>0</def_mode>
                 <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
@@ -1365,7 +1372,7 @@
             </gpio114>
             <gpio115>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>0</def_mode>
                 <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
@@ -1375,7 +1382,7 @@
             </gpio115>
             <gpio116>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>0</def_mode>
                 <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
@@ -1385,7 +1392,7 @@
             </gpio116>
             <gpio117>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>0</def_mode>
                 <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
@@ -1395,7 +1402,7 @@
             </gpio117>
             <gpio118>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>0</def_mode>
                 <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
@@ -1405,7 +1412,7 @@
             </gpio118>
             <gpio119>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>0</def_mode>
                 <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
@@ -1415,7 +1422,7 @@
             </gpio119>
             <gpio120>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>0</def_mode>
                 <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
@@ -1425,11 +1432,11 @@
             </gpio120>
             <gpio121>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
-                <inpull_en>false</inpull_en>
+                <def_mode>0</def_mode>
+                <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
-                <def_dir>OUT</def_dir>
-                <out_high>true</out_high>
+                <def_dir>IN</def_dir>
+                <out_high>false</out_high>
                 <smt>false</smt>
                 <ies>true</ies>
             </gpio121>
@@ -1836,7 +1843,7 @@
             </gpio160>
             <gpio161>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>2</def_mode>
                 <inpull_en>true</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>IN</def_dir>
@@ -1847,7 +1854,7 @@
             </gpio161>
             <gpio162>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>2</def_mode>
                 <inpull_en>false</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>OUT</def_dir>
@@ -1858,7 +1865,7 @@
             </gpio162>
             <gpio163>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>2</def_mode>
                 <inpull_en>false</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>OUT</def_dir>
@@ -1869,7 +1876,7 @@
             </gpio163>
             <gpio164>
                 <eint_mode>false</eint_mode>
-                <def_mode>1</def_mode>
+                <def_mode>2</def_mode>
                 <inpull_en>false</inpull_en>
                 <inpull_selhigh>false</inpull_selhigh>
                 <def_dir>OUT</def_dir>

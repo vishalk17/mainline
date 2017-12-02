@@ -89,6 +89,7 @@
 #include <mmdvfs_mgr.h>
 /* Use this qos request to control camera dynamic frequency change */
 struct mmdvfs_pm_qos_request isp_qos;
+static u32 target_clk;
 #endif
 
 #include "inc/camera_isp.h"
@@ -794,7 +795,7 @@ int MET_Event_Get_BPP(enum _isp_dma_enum_ dmao, unsigned int reg_module)
 	int ret = 0;
 
 	if (dmao == _imgo_) {
-		switch (fmt_sel & 0x1F0) {
+		switch ((fmt_sel >> 4) & 0x1F) {
 		case 0:
 		case 12:
 		case 13:
@@ -816,11 +817,11 @@ int MET_Event_Get_BPP(enum _isp_dma_enum_ dmao, unsigned int reg_module)
 			ret = 14;
 			break;
 		default:
-			LOG_NOTICE("get imgo bpp error\n");
+			LOG_NOTICE("get imgo bpp error fmt_sel:0x%x value=%x\n", fmt_sel, (fmt_sel >> 4) & 0x1F);
 			break;
 		}
 	} else if (dmao == _rrzo_) {
-		switch (fmt_sel & 0x0C) {
+		switch ((fmt_sel >> 2) & 0x3) {
 		case 0:
 			ret = 8;
 			break;
@@ -831,7 +832,7 @@ int MET_Event_Get_BPP(enum _isp_dma_enum_ dmao, unsigned int reg_module)
 			ret = 12;
 			break;
 		default:
-			LOG_NOTICE("get rrzo bpp error\n");
+			LOG_NOTICE("get rrzo bpp error fmt_sel:0x%x value=%x\n", fmt_sel, (fmt_sel >> 2) & 0x3);
 			break;
 		}
 	}
@@ -2619,6 +2620,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 
 			if (copy_from_user(&dfs_update, (void *)Param, sizeof(unsigned int)) == 0) {
 				mmdvfs_pm_qos_update_request(&isp_qos, MMDVFS_PM_QOS_SUB_SYS_CAMERA, dfs_update);
+				target_clk = dfs_update;
 				LOG_VRB("Set clock level:%d", dfs_update);
 			} else {
 				LOG_NOTICE("ISP_DFS_UPDATE copy_from_user failed\n");
@@ -2653,12 +2655,13 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		break;
 	case ISP_GET_CUR_ISP_CLOCK:
 		{
-			unsigned int curclk;
+			struct ISP_GET_CLK_INFO getclk;
 
-			curclk = mmdvfs_qos_get_cur_thres(&isp_qos, MMDVFS_PM_QOS_SUB_SYS_CAMERA);
-			LOG_VRB("Get current clock level:%d", curclk);
+			getclk.curClk = mmdvfs_qos_get_cur_thres(&isp_qos, MMDVFS_PM_QOS_SUB_SYS_CAMERA);
+			getclk.targetClk = target_clk;
+			LOG_VRB("Get current clock level:%d, target clock:%d", getclk.curClk, getclk.targetClk);
 
-			if (copy_to_user((void *)Param, &curclk, sizeof(unsigned int)) != 0) {
+			if (copy_to_user((void *)Param, &getclk, sizeof(struct ISP_GET_CLK_INFO)) != 0) {
 				LOG_NOTICE("copy_to_user failed");
 				Ret = -EFAULT;
 			}
@@ -2924,7 +2927,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 						unsigned long flags;
 
 						spin_lock_irqsave(&IspInfo.SpinLockIrq[0], flags);
-						ISP_WR32(CAM_REG_CTL_CD_DONE_SEL(ISP_CAM_A_IDX), 0x1);
+						ISP_WR32(CAM_REG_CTL_CD_DONE_SEL(ISP_CAM_A_IDX), 0x10000);
 						ISP_WR32(CAM_REG_CTL_UNI_DONE_SEL(ISP_CAM_A_IDX), 0x1);
 						ISP_WR32(CAM_REG_CQ_THR0_BASEADDR(ISP_CAM_C_IDX), Addr[2]);
 						ISP_WR32(CAM_REG_CQ_THR0_BASEADDR(ISP_CAM_A_IDX), Addr[0]);
@@ -2939,7 +2942,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 						unsigned long flags;
 
 						spin_lock_irqsave(&IspInfo.SpinLockIrq[1], flags);
-						ISP_WR32(CAM_REG_CTL_CD_DONE_SEL(ISP_CAM_B_IDX), 0x1);
+						ISP_WR32(CAM_REG_CTL_CD_DONE_SEL(ISP_CAM_B_IDX), 0x10000);
 						ISP_WR32(CAM_REG_CTL_UNI_DONE_SEL(ISP_CAM_B_IDX), 0x1);
 						ISP_WR32(CAM_REG_CQ_THR0_BASEADDR(ISP_CAM_C_IDX), Addr[2]);
 						ISP_WR32(CAM_REG_CQ_THR0_BASEADDR(ISP_CAM_B_IDX), Addr[1]);
@@ -2953,7 +2956,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 						unsigned long flags;
 
 						spin_lock_irqsave(&IspInfo.SpinLockIrq[0], flags);
-						ISP_WR32(CAM_REG_CTL_CD_DONE_SEL(ISP_CAM_A_IDX), 0x1);
+						ISP_WR32(CAM_REG_CTL_CD_DONE_SEL(ISP_CAM_A_IDX), 0x10000);
 						ISP_WR32(CAM_REG_CTL_UNI_DONE_SEL(ISP_CAM_A_IDX), 0x1);
 						ISP_WR32(CAM_REG_CQ_THR0_BASEADDR(ISP_CAM_B_IDX), Addr[1]);
 						ISP_WR32(CAM_REG_CQ_THR0_BASEADDR(ISP_CAM_A_IDX), Addr[0]);
@@ -2969,7 +2972,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 					unsigned long flags;
 
 					spin_lock_irqsave(&IspInfo.SpinLockIrq[ISP_IRQ_TYPE_INT_CAM_A_ST], flags);
-					ISP_WR32(CAM_REG_CTL_CD_DONE_SEL(ISP_CAM_A_IDX), 0x1);
+					ISP_WR32(CAM_REG_CTL_CD_DONE_SEL(ISP_CAM_A_IDX), 0x10000);
 					ISP_WR32(CAM_REG_CTL_UNI_DONE_SEL(ISP_CAM_A_IDX), 0x1);
 					ISP_WR32(CAM_REG_CQ_THR0_BASEADDR(ISP_CAM_C_IDX), Addr[2]);
 					ISP_WR32(CAM_REG_CQ_THR0_BASEADDR(ISP_CAM_B_IDX), Addr[1]);
@@ -3071,16 +3074,16 @@ static int compat_get_isp_buf_ctrl_struct_data(
 	struct compat_ISP_BUFFER_CTRL_STRUCT __user *data32,
 	struct ISP_BUFFER_CTRL_STRUCT __user *data)
 {
-	compat_uint_t tmp;
+	compat_uint_t tmp, tmp2, tmp3;
 	compat_uptr_t uptr;
 	int err = 0;
 
 	err = get_user(tmp, &data32->ctrl);
 	err |= put_user(tmp, &data->ctrl);
-	err |= get_user(tmp, &data32->module);
-	err |= put_user(tmp, &data->module);
-	err |= get_user(tmp, &data32->buf_id);
-	err |= put_user(tmp, &data->buf_id);
+	err |= get_user(tmp2, &data32->module);
+	err |= put_user(tmp2, &data->module);
+	err |= get_user(tmp3, &data32->buf_id);
+	err |= put_user(tmp3, &data->buf_id);
 	err |= get_user(uptr, &data32->data_ptr);
 	err |= put_user(compat_ptr(uptr), &data->data_ptr);
 	err |= get_user(uptr, &data32->ex_data_ptr);
@@ -3095,16 +3098,16 @@ static int compat_put_isp_buf_ctrl_struct_data(
 	struct compat_ISP_BUFFER_CTRL_STRUCT __user *data32,
 	struct ISP_BUFFER_CTRL_STRUCT __user *data)
 {
-	compat_uint_t tmp;
+	compat_uint_t tmp, tmp2, tmp3;
 	/*      compat_uptr_t uptr;*/
 	int err = 0;
 
 	err = get_user(tmp, &data->ctrl);
 	err |= put_user(tmp, &data32->ctrl);
-	err |= get_user(tmp, &data->module);
-	err |= put_user(tmp, &data32->module);
-	err |= get_user(tmp, &data->buf_id);
-	err |= put_user(tmp, &data32->buf_id);
+	err |= get_user(tmp2, &data->module);
+	err |= put_user(tmp2, &data32->module);
+	err |= get_user(tmp3, &data->buf_id);
+	err |= put_user(tmp3, &data32->buf_id);
 	/* Assume data pointer is unchanged. */
 	/* err |= get_user(compat_ptr(uptr), &data->data_ptr); */
 	/* err |= put_user(uptr, &data32->data_ptr); */
@@ -3120,14 +3123,14 @@ static int compat_get_isp_ref_cnt_ctrl_struct_data(
 	struct compat_ISP_REF_CNT_CTRL_STRUCT __user *data32,
 	struct ISP_REF_CNT_CTRL_STRUCT __user *data)
 {
-	compat_uint_t tmp;
+	compat_uint_t tmp, tmp2;
 	compat_uptr_t uptr;
 	int err = 0;
 
 	err = get_user(tmp, &data32->ctrl);
 	err |= put_user(tmp, &data->ctrl);
-	err |= get_user(tmp, &data32->id);
-	err |= put_user(tmp, &data->id);
+	err |= get_user(tmp2, &data32->id);
+	err |= put_user(tmp2, &data->id);
 	err |= get_user(uptr, &data32->data_ptr);
 	err |= put_user(compat_ptr(uptr), &data->data_ptr);
 
@@ -3138,14 +3141,14 @@ static int compat_put_isp_ref_cnt_ctrl_struct_data(
 	struct compat_ISP_REF_CNT_CTRL_STRUCT __user *data32,
 	struct ISP_REF_CNT_CTRL_STRUCT __user *data)
 {
-	compat_uint_t tmp;
+	compat_uint_t tmp, tmp2;
 	/*      compat_uptr_t uptr;*/
 	int err = 0;
 
 	err = get_user(tmp, &data->ctrl);
 	err |= put_user(tmp, &data32->ctrl);
-	err |= get_user(tmp, &data->id);
-	err |= put_user(tmp, &data32->id);
+	err |= get_user(tmp2, &data->id);
+	err |= put_user(tmp2, &data32->id);
 	/* Assume data pointer is unchanged. */
 	/* err |= get_user(compat_ptr(uptr), &data->data_ptr); */
 	/* err |= put_user(uptr, &data32->data_ptr); */
@@ -3262,13 +3265,6 @@ static long ISP_ioctl_compat(struct file *filp, unsigned int cmd, unsigned long 
 		ret = filp->f_op->unlocked_ioctl(filp, ISP_DEBUG_FLAG, (unsigned long)compat_ptr(arg));
 		return ret;
 	}
-	case COMPAT_ISP_GET_INT_ERR: {
-		/* compat_ptr(arg) will convert the arg */
-		ret =
-			filp->f_op->unlocked_ioctl(filp, ISP_GET_INT_ERR,
-						   (unsigned long)compat_ptr(arg));
-		return ret;
-	}
 	case COMPAT_ISP_GET_DMA_ERR: {
 		/* compat_ptr(arg) will convert the arg */
 		ret =
@@ -3328,6 +3324,7 @@ static long ISP_ioctl_compat(struct file *filp, unsigned int cmd, unsigned long 
 	case ISP_DFS_UPDATE:
 	case ISP_GET_SUPPORTED_ISP_CLOCKS:
 	case ISP_GET_CUR_ISP_CLOCK:
+	case ISP_GET_INT_ERR:
 		return filp->f_op->unlocked_ioctl(filp, cmd, arg);
 	default:
 		return -ENOIOCTLCMD;

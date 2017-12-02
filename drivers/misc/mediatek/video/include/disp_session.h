@@ -399,6 +399,7 @@ enum DISP_FEATURE {
 	DISP_FEATURE_FENCE_WAIT = 0x00000008,
 	DISP_FEATURE_RSZ = 0x00000010,
 	DISP_FEATURE_NO_PARGB = 0x00000020,
+	DISP_FEATURE_DISP_SELF_REFRESH = 0x00000040,
 };
 
 struct disp_caps_info {
@@ -468,6 +469,15 @@ enum DISP_UT_ERROR {
 	DISP_UT_ERROR_RDMA = 0x00000004,
 	DISP_UT_ERROR_CMDQ_TIMEOUT = 0x00000008,
 };
+
+enum DISP_SELF_REFRESH_TYPE {
+	WAIT_FOR_REFRESH,
+	REFRESH_FOR_ANTI_LATENCY2,
+	REFRESH_FOR_SWITCH_DECOUPLE,
+	REFRESH_FOR_SWITCH_DECOUPLE_MIRROR,
+	REFRESH_TYPE_NUM,
+};
+
 /* IOCTL commands. */
 #define DISP_IOW(num, dtype)     _IOW('O', num, dtype)
 #define DISP_IOR(num, dtype)     _IOR('O', num, dtype)
@@ -503,7 +513,8 @@ enum DISP_UT_ERROR {
 #define	DISP_IOCTL_SET_SCENARIO					DISP_IOW(223, struct disp_scenario_config_t)
 #define	DISP_IOCTL_WAIT_ALL_JOBS_DONE				DISP_IOW(224, unsigned int)
 #define	DISP_IOCTL_SCREEN_FREEZE				DISP_IOW(225, unsigned int)
-#define DISP_IOCTL_GET_UT_RESULT			DISP_IOW(226, unsigned int)
+#define DISP_IOCTL_GET_UT_RESULT				DISP_IOW(226, unsigned int)
+#define DISP_IOCTL_WAIT_DISP_SELF_REFRESH			DISP_IOW(227, unsigned int)
 #ifdef __KERNEL__
 
 int disp_mgr_get_session_info(struct disp_session_info *info);

@@ -52,6 +52,8 @@ obj-$(CONFIG_MACH_MT6763) += eem_v2/
 obj-$(CONFIG_MACH_MT6739) += eem_v2/
 obj-$(CONFIG_MACH_MT6771) += eem_v2/
 obj-$(CONFIG_MACH_MT6775) += eem_v2/
+obj-$(CONFIG_MACH_MT6771) += drcc_v1/
+obj-$(CONFIG_MACH_MT6775) += drcc_v1/
 endif
 obj-$(CONFIG_MACH_MT6799) += upower_v1/
 obj-$(CONFIG_MACH_MT6771) += upower_v2/
@@ -90,6 +92,7 @@ obj-$(CONFIG_MACH_MT6799) += cpuidle_v2/
 obj-$(CONFIG_MACH_MT6759) += cpuidle_v2/
 obj-$(CONFIG_MACH_MT6763) += cpuidle_v2/
 obj-$(CONFIG_MACH_MT6758) += cpuidle_v2/
+obj-$(CONFIG_MACH_MT6771) += cpuidle_v3/
 ifneq ($(CONFIG_FPGA_EARLY_PORTING),y)
 obj-$(CONFIG_MACH_MT6739) += cpuidle_v3/
 obj-$(CONFIG_MACH_MT6757) += power_gs_v1/
@@ -98,6 +101,7 @@ obj-$(CONFIG_MACH_MT6759) += power_gs_v1/
 obj-$(CONFIG_MACH_MT6763) += power_gs_v1/
 obj-$(CONFIG_MACH_MT6739) += power_gs_v1/
 obj-$(CONFIG_MACH_MT6758) += power_gs_v1/
+obj-$(CONFIG_MACH_MT6771) += power_gs_v1/
 endif
 obj-$(CONFIG_MACH_MT6757) += hps_v2/
 obj-$(CONFIG_MACH_MT6763) += hps_v3/
@@ -107,6 +111,7 @@ obj-$(CONFIG_MACH_MT6758) += hps_v3/
 endif
 obj-$(CONFIG_MACH_MT6759) += hps_v3/
 obj-$(CONFIG_MACH_MT6739) += hps_v3/
+obj-$(CONFIG_MACH_MT6771) += hps_v3/
 obj-$(CONFIG_MACH_KIBOPLUS) += hps_v2/
 obj-$(CONFIG_MACH_MT6757) += ppm_v2/
 obj-$(CONFIG_MACH_KIBOPLUS) += ppm_v2/
@@ -130,6 +135,7 @@ obj-$(CONFIG_MACH_MT6739) += spm_v4/
 obj-$(CONFIG_MACH_MT6763) += spm_v4/
 obj-$(CONFIG_MACH_MT6771) += spm_v4/
 ifneq ($(CONFIG_FPGA_EARLY_PORTING),y)
+obj-$(CONFIG_MACH_MT6771) += clkbuf_v1/
 obj-$(CONFIG_MACH_MT6739) += clkbuf_v1/
 obj-$(CONFIG_MACH_MT6758) += clkbuf_v1/
 obj-$(CONFIG_MACH_MT6759) += clkbuf_v1/
@@ -137,6 +143,7 @@ obj-$(CONFIG_MACH_MT6763) += clkbuf_v1/
 obj-$(CONFIG_MACH_MT6799) += clkbuf_v1/
 obj-$(CONFIG_MACH_MT6775) += clkbuf_v1/
 endif
+obj-$(CONFIG_MACH_MT6771) += dcm_v1/
 obj-$(CONFIG_MACH_MT6739) += dcm_v1/
 obj-$(CONFIG_MACH_MT6758) += dcm_v1/
 obj-$(CONFIG_MACH_MT6759) += dcm_v1/
@@ -155,3 +162,7 @@ obj-y += mcdi_dummy/
 endif
 obj-$(CONFIG_MACH_MT6771) += swpm_v1/
 obj-$(CONFIG_MACH_MT6775) += swpm_v1/
+ifeq ($(CONFIG_MTK_CM_MGR), y)
+obj-$(CONFIG_MACH_MT6771) += cm_mgr_v1/
+obj-$(CONFIG_MACH_MT6775) += cm_mgr_v1/
+endif

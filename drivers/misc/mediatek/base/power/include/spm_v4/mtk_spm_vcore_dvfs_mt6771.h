@@ -11,8 +11,8 @@
  * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
-#ifndef __MTK_SPM_VCORE_DVFS_H__
-#define __MTK_SPM_VCORE_DVFS_H__
+#ifndef __MTK_SPM_VCORE_DVFS_MT6771_H__
+#define __MTK_SPM_VCORE_DVFS_MT6771_H__
 
 #include "mtk_spm.h"
 #include <mtk_vcorefs_manager.h>
@@ -22,7 +22,7 @@
 #define SPM_VCORE_DVS_EN       0 /* SB disabled */
 #define SPM_DDR_DFS_EN         0 /* SB disabled */
 #define SPM_MM_CLK_EN          0 /* for intra-frame dvfs */
-#define VMODEM_VCORE_COBUCK    0 /* SB disabled */
+#define VMODEM_VCORE_COBUCK    1 /* SB disabled */
 
 #define SPM_DVFS_TIMEOUT       1000	/* 1ms */
 
@@ -46,8 +46,12 @@ extern void spm_request_dvfs_opp(int id, enum dvfs_opp opp);
 extern u32 spm_vcorefs_get_md_srcclkena(void);
 extern void dvfsrc_md_scenario_update(bool);
 extern void dvfsrc_set_scp_vcore_request(unsigned int val);
-
+extern void dvfsrc_set_power_model_ddr_request(unsigned int level);
+extern void helio_dvfsrc_sspm_ipi_init(void);
+extern void dvfsrc_hw_policy_mask(bool mask);
+extern int spm_get_vcore_opp(unsigned int opp);
+extern int spm_vcorefs_get_dvfs_opp(void);
 extern void dvfsrc_update_sspm_vcore_opp_table(int opp, unsigned int vcore_uv);
 extern void dvfsrc_update_sspm_ddr_opp_table(int opp, unsigned int ddr_khz);
 
-#endif /* __MTK_SPM_VCORE_DVFS_H__ */
+#endif /* __MTK_SPM_VCORE_DVFS_MT6771_H__ */

@@ -20,11 +20,20 @@
 #include "mtk_idle.h"
 #include "mtk_spm_resource_req.h"
 /* #include "mtk_secure_api.h" */
-/* #include "mtk_clkbuf_ctl.h" */
 
 #ifdef MTK_UFS_HQA
 #include <mtk_reboot.h>
 #include <upmu_common.h>
+#endif
+
+/* If SPM function not ready, comment this define */
+#define SPM_READY /* need platform porting */
+
+/* If CLKBUF function not ready, comment this define */
+#define CLKBUF_READY /* need platform porting */
+
+#ifdef CLKBUF_READY
+#include "mtk_clkbuf_ctl.h"
 #endif
 
 static void __iomem *ufs_mtk_mmio_base_gpio;
@@ -125,7 +134,7 @@ int ufs_mtk_pltfrm_bootrom_deputy(struct ufs_hba *hba)
  */
 int ufs_mtk_pltfrm_deepidle_check_h8(void)
 {
-#if 0 /* need platform porting */
+#ifdef SPM_READY
 	int ret = 0;
 	u32 tmp;
 
@@ -139,7 +148,7 @@ int ufs_mtk_pltfrm_deepidle_check_h8(void)
 	 * hba->uic_link_state also used by ufshcd_gate_work()
 	 */
 	if (ufs_mtk_hba->curr_dev_pwr_mode != UFS_ACTIVE_PWR_MODE) {
-		spm_resource_req(SPM_RESOURCE_USER_UFS, 0);
+		spm_resource_req(SPM_RESOURCE_USER_UFS, SPM_RESOURCE_RELEASE);
 		return UFS_H8_SUSPEND;
 	}
 
@@ -160,9 +169,11 @@ int ufs_mtk_pltfrm_deepidle_check_h8(void)
 		/* Disable MPHY 26MHz ref clock in H8 mode */
 		/* SSPM project will disable MPHY 26MHz ref clock in SSPM deepidle/SODI IPI handler*/
 	#if !defined(CONFIG_MTK_TINYSYS_SSPM_SUPPORT)
+	#ifdef CLKBUF_READY
 		clk_buf_ctrl(CLK_BUF_UFS, false);
 	#endif
-		spm_resource_req(SPM_RESOURCE_USER_UFS, 0);
+	#endif
+		spm_resource_req(SPM_RESOURCE_USER_UFS, SPM_RESOURCE_RELEASE);
 		return UFS_H8;
 	}
 
@@ -178,7 +189,7 @@ int ufs_mtk_pltfrm_deepidle_check_h8(void)
  */
 void ufs_mtk_pltfrm_deepidle_leave(void)
 {
-#if 0 /* need platform porting */
+#ifdef CLKBUF_READY
 	/* Enable MPHY 26MHz ref clock after leaving deepidle */
 	/* SSPM project will enable MPHY 26MHz ref clock in SSPM deepidle/SODI IPI handler*/
 
@@ -203,7 +214,7 @@ void ufs_mtk_pltfrm_deepidle_leave(void)
  */
 void ufs_mtk_pltfrm_deepidle_resource_req(struct ufs_hba *hba, unsigned int resource)
 {
-#if 0 /* need platform porting */
+#ifdef SPM_READY
 	spm_resource_req(SPM_RESOURCE_USER_UFS, resource);
 #endif
 }
@@ -215,7 +226,7 @@ void ufs_mtk_pltfrm_deepidle_resource_req(struct ufs_hba *hba, unsigned int reso
  */
 void ufs_mtk_pltfrm_deepidle_lock(struct ufs_hba *hba, bool lock)
 {
-#if 0 /* need platform porting */
+#ifdef SPM_READY
 	if (lock)
 		idle_lock_by_ufs(1);
 	else
@@ -361,7 +372,7 @@ int ufs_mtk_pltfrm_parse_dt(struct ufs_hba *hba)
 		return -EINVAL;
 	}
 	err = regulator_enable(reg_va09);
-	if (!err) {
+	if (err < 0) {
 		dev_info(hba->dev, "%s: enalbe va09 fail, err = %d\n", __func__, err);
 		return err;
 	}
@@ -371,7 +382,7 @@ int ufs_mtk_pltfrm_parse_dt(struct ufs_hba *hba)
 
 int ufs_mtk_pltfrm_res_req(struct ufs_hba *hba, u32 option)
 {
-#if 0 /* need platform porting */
+#ifdef SPM_READY
 	if (option == UFS_MTK_RESREQ_DMA_OP) {
 
 		/* request resource for DMA operations, e.g., DRAM */
@@ -395,13 +406,13 @@ int ufs_mtk_pltfrm_resume(struct ufs_hba *hba)
 	int ret = 0;
 	u32 reg;
 
-#if 0 /* need platform porting */
+#ifdef CLKBUF_READY
 	/* Enable MPHY 26MHz ref clock */
 	clk_buf_ctrl(CLK_BUF_UFS, true);
 #endif
 	/* Set regulator to turn on VA09 LDO */
 	ret = regulator_enable(reg_va09);
-	if (!ret) {
+	if (ret < 0) {
 		dev_info(hba->dev, "%s: enalbe va09 fail, err = %d\n", __func__, ret);
 		return ret;
 	}
@@ -520,13 +531,13 @@ int ufs_mtk_pltfrm_suspend(struct ufs_hba *hba)
 	/* delay awhile to satisfy T_HIBERNATE */
 	mdelay(15);
 
-#if 0 /* need platform porting */
+#ifdef CLKBUF_READY
 	/* Disable MPHY 26MHz ref clock in H8 mode */
 	clk_buf_ctrl(CLK_BUF_UFS, false);
 #endif
 	/* Set regulator to turn off VA09 LDO */
 	ret = regulator_disable(reg_va09);
-	if (!ret) {
+	if (ret < 0) {
 		dev_info(hba->dev, "%s: disalbe va09 fail, err = %d\n", __func__, ret);
 		return ret;
 	}

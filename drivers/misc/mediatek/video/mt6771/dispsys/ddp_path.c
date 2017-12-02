@@ -200,11 +200,11 @@ static struct sel_s sel_in_map[] = {
 	{DISP_MODULE_WDMA0, {DISP_MODULE_NUM, DISP_MODULE_NUM,
 						 DISP_MODULE_NUM, DISP_MODULE_WDMA_VIRTUAL1, -1}, 0, 0},
 	/* DSI_SEL */
-	{DISP_MODULE_DSI0, {DISP_MODULE_DITHER0, DISP_MODULE_RDMA0,
+	{DISP_MODULE_DSI0, {DISP_MODULE_DITHER0, DISP_MODULE_RDMA_VIRTUAL0,
 						DISP_MODULE_NUM, DISP_MODULE_RDMA1, -1}, 0, 0},
 
 	/* DPI_SEL */
-	{DISP_MODULE_DPI, {DISP_MODULE_NUM, DISP_MODULE_RDMA0, DISP_MODULE_RDMA1,
+	{DISP_MODULE_DPI_VIRTUAL, {DISP_MODULE_NUM, DISP_MODULE_RDMA0, DISP_MODULE_RDMA1,
 					   DISP_MODULE_DITHER0, -1}, 0, 0},
 
 	/* RSZ_SEL */
@@ -613,7 +613,7 @@ int ddp_set_dst_module(enum DDP_SCENARIO_ENUM scenario, enum DISP_MODULE_ENUM ds
 {
 	int i = 0;
 
-	DDPMSG("ddp_set_dst_module, scenario=%s, dst_module=%s\n",
+	DDPDBG("ddp_set_dst_module, scenario=%s, dst_module=%s\n",
 	       ddp_get_scenario_name(scenario), ddp_get_module_name(dst_module));
 	if (ddp_find_module_index(scenario, dst_module) != -1) {
 		DDPDBG("%s is already on path\n", ddp_get_module_name(dst_module));
@@ -739,19 +739,22 @@ int ddp_path_top_clock_on(void)
 
 	if (disp_helper_get_option(DISP_OPT_DYNAMIC_SWITCH_MMSYSCLK))
 		;/*ddp_clk_prepare_enable(MM_VENCPLL);*/
-	ddp_clk_prepare_enable(CLK_MM_MTCMOS);
+	ddp_clk_prepare_enable(DISP_MTCMOS_CLK);
 	/*ddp_clk_prepare_enable(TOP_26M);*/
-	ddp_clk_prepare_enable(CLK_SMI_COMMON);
-	ddp_clk_prepare_enable(CLK_GALS_COMM0);
-	ddp_clk_prepare_enable(CLK_GALS_COMM1);
-	ddp_clk_prepare_enable(CLK_SMI_LARB0);
-	ddp_clk_prepare_enable(CLK_SMI_LARB1);
-	ddp_clk_prepare_enable(CLK_MM_26M);
+	ddp_clk_prepare_enable(DISP0_SMI_COMMON);
+	ddp_clk_prepare_enable(DISP0_SMI_LARB0);
+	/*ddp_clk_prepare_enable(DISP0_SMI_LARB1);*/
+	ddp_clk_prepare_enable(CLK_MM_GALS_COMM0);
+	ddp_clk_prepare_enable(CLK_MM_GALS_COMM1);
+	ddp_clk_prepare_enable(DISP0_DISP_26M);
 
 	/* hw workaround : begin */
 	/* 2. gce event 34 workaround */
 	ddp_ovl_dcm_reset();
 	/* hw workaround : end */
+
+	/* MMSYS golden setting */
+	DISP_REG_SET_FIELD(NULL, REG_FLD(5, 0), DISP_REG_CONFIG_MMSYS_SODI_REQ_MASK, 0x3);
 
 	/* enable_clock(MT_CG_DISP0_MUTEX_32K, "DDP_MUTEX"); */
 	DDPDBG("ddp CG0:%x, CG1:%x\n", DISP_REG_GET(DISP_REG_CONFIG_MMSYS_CG_CON0),
@@ -762,14 +765,14 @@ int ddp_path_top_clock_on(void)
 
 int ddp_path_top_clock_off(void)
 {
-	ddp_clk_disable_unprepare(CLK_MM_26M);
-	ddp_clk_disable_unprepare(CLK_SMI_LARB1);
-	ddp_clk_disable_unprepare(CLK_SMI_LARB0);
-	ddp_clk_disable_unprepare(CLK_GALS_COMM1);
-	ddp_clk_disable_unprepare(CLK_GALS_COMM0);
-	ddp_clk_disable_unprepare(CLK_SMI_COMMON);
+	ddp_clk_disable_unprepare(DISP0_DISP_26M);
+	ddp_clk_disable_unprepare(CLK_MM_GALS_COMM1);
+	ddp_clk_disable_unprepare(CLK_MM_GALS_COMM0);
+	/*ddp_clk_disable_unprepare(DISP0_SMI_LARB1);*/
+	ddp_clk_disable_unprepare(DISP0_SMI_LARB0);
+	ddp_clk_disable_unprepare(DISP0_SMI_COMMON);
 	/*ddp_clk_disable_unprepare(TOP_26M);*/
-	ddp_clk_disable_unprepare(CLK_MM_MTCMOS);
+	ddp_clk_disable_unprepare(DISP_MTCMOS_CLK);
 
 	if (disp_helper_get_option(DISP_OPT_DYNAMIC_SWITCH_MMSYSCLK))
 		;/*ddp_clk_disable_unprepare(MM_VENCPLL);*/

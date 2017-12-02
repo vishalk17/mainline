@@ -101,24 +101,22 @@ int md_cd_get_modem_hw_info(struct platform_device *dev_ptr, struct ccci_dev_cfg
 	int idx = 0;
 	struct cldma_hw_info *cldma_hw;
 
+	if (dev_ptr->dev.of_node == NULL) {
+		CCCI_ERROR_LOG(0, TAG, "modem OF node NULL\n");
+		return -1;
+	}
+
+	memset(dev_cfg, 0, sizeof(struct ccci_dev_cfg));
+	of_property_read_u32(dev_ptr->dev.of_node, "mediatek,md_id", &dev_cfg->index);
+	CCCI_DEBUG_LOG(dev_cfg->index, TAG, "modem hw info get idx:%d\n", dev_cfg->index);
+
 	cldma_hw = kzalloc(sizeof(struct cldma_hw_info), GFP_KERNEL);
 	if (cldma_hw == NULL) {
 		CCCI_ERROR_LOG(-1, TAG, "md_cd_get_modem_hw_info:alloc cldma hw mem fail\n");
 		return -1;
 	}
 
-	memset(dev_cfg, 0, sizeof(struct ccci_dev_cfg));
 	memset(hw_info, 0, sizeof(struct md_hw_info));
-	memset(cldma_hw, 0, sizeof(struct cldma_hw_info));
-
-	if (dev_ptr->dev.of_node == NULL) {
-		CCCI_ERROR_LOG(dev_cfg->index, TAG, "modem OF node NULL\n");
-		return -1;
-	}
-
-	of_property_read_u32(dev_ptr->dev.of_node, "mediatek,md_id", &dev_cfg->index);
-	CCCI_DEBUG_LOG(dev_cfg->index, TAG, "modem hw info get idx:%d\n", dev_cfg->index);
-
 	hw_info->hif_hw_info = cldma_hw;
 
 	switch (dev_cfg->index) {

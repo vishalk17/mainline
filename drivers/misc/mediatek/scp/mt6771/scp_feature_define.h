@@ -21,7 +21,7 @@
 #define SCP_BOOT_TIME_OUT_MONITOR       (1)
 #define SCP_LOGGER_ENABLE               (1)
 #define SCP_VCORE_TEST_ENABLE			(1)
-#define SCP_DVFS_INIT_ENABLE			(0)
+#define SCP_DVFS_INIT_ENABLE			(1)
 #define SCP_RESERVED_MEM				(1)
 
 /* scp aed definition*/
@@ -31,7 +31,7 @@
 #define SCP_REGISTER_SUB_SENSOR         (1)
 
 /* emi mpu define*/
-#ifdef CONFIG_MTK_EMI_MPU
+#ifdef CONFIG_MTK_EMI
 	#define ENABLE_SCP_EMI_PROTECTION       (1)
 #else
 	#define ENABLE_SCP_EMI_PROTECTION       (0)

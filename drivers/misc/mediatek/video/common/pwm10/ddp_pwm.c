@@ -580,7 +580,7 @@ static int ddp_pwm_power_on(enum DISP_MODULE_ENUM module, void *handle)
 	defined(CONFIG_MACH_MT6775) || defined(CONFIG_MACH_MT6739)
 	/* pwm ccf api */
 	ddp_clk_prepare_enable(ddp_get_module_clk_id(module));
-#elif defined(CONFIG_MACH_MT6763)
+#elif defined(CONFIG_MACH_MT6763) || defined(CONFIG_MACH_MT6771)
 	ddp_clk_prepare_enable(ddp_get_module_clk_id(module));
 	ddp_clk_prepare_enable(TOP_MUX_DISP_PWM);
 #else
@@ -634,7 +634,7 @@ static int ddp_pwm_power_off(enum DISP_MODULE_ENUM module, void *handle)
 	defined(CONFIG_MACH_MT6775) || defined(CONFIG_MACH_MT6739)
 	/* pwm ccf api */
 	ddp_clk_disable_unprepare(ddp_get_module_clk_id(module));
-#elif defined(CONFIG_MACH_MT6763)
+#elif defined(CONFIG_MACH_MT6763) || defined(CONFIG_MACH_MT6771)
 	ddp_clk_disable_unprepare(ddp_get_module_clk_id(module));
 	ddp_clk_disable_unprepare(TOP_MUX_DISP_PWM);
 #else

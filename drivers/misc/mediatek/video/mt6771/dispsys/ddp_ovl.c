@@ -45,7 +45,8 @@ static enum DISP_MODULE_ENUM ovl_index_module[OVL_NUM] = {
 	DISP_MODULE_OVL0, DISP_MODULE_OVL0_2L, DISP_MODULE_OVL1_2L
 };
 
-static unsigned int gOVLBackground = 0xFF000000;
+unsigned int gOVLBackground = 0xFF000000;
+unsigned int govldimcolor = 0xFF000000;
 
 /* Only one YUV layer can be config in a OVL engine no matter the YUV layer */
 /* is enabled or disabled. Record the index of YUV layer and set that layer to */
@@ -85,7 +86,11 @@ static inline unsigned long ovl_layer_num(enum DISP_MODULE_ENUM module)
 	case DISP_MODULE_OVL0:
 		return 4;
 	case DISP_MODULE_OVL0_2L:
+#ifndef CONFIG_MTK_ROUND_CORNER_SUPPORT
 		return 2;
+#else
+		return 1;
+#endif
 	case DISP_MODULE_OVL1_2L:
 		return 2;
 	default:
@@ -173,7 +178,7 @@ int ovl_start(enum DISP_MODULE_ENUM module, void *handle)
 			   ovl_base + DISP_REG_OVL_EN, 0x1);
 
 	DISP_REG_SET(handle, ovl_base + DISP_REG_OVL_INTEN,
-		     0x1E | REG_FLD_VAL(INTEN_FLD_ABNORMAL_SOF, 1) |
+		     0x1E0 | REG_FLD_VAL(INTEN_FLD_ABNORMAL_SOF, 1) |
 		     REG_FLD_VAL(INTEN_FLD_START_INTEN, 1));
 #if (defined(CONFIG_MTK_TEE_GP_SUPPORT) || defined(CONFIG_TRUSTONIC_TEE_SUPPORT)) && \
 				defined(CONFIG_MTK_SEC_VIDEO_PATH_SUPPORT)
@@ -181,7 +186,7 @@ int ovl_start(enum DISP_MODULE_ENUM module, void *handle)
 			ovl_base + DISP_REG_OVL_INTEN, 1);
 #endif
 	DISP_REG_SET_FIELD(handle, DATAPATH_CON_FLD_LAYER_SMI_ID_EN,
-			   ovl_base + DISP_REG_OVL_DATAPATH_CON, 0);
+			   ovl_base + DISP_REG_OVL_DATAPATH_CON, 1);
 	DISP_REG_SET_FIELD(handle, DATAPATH_CON_FLD_OUTPUT_NO_RND,
 			   ovl_base + DISP_REG_OVL_DATAPATH_CON, 0x0);
 	DISP_REG_SET_FIELD(handle, DATAPATH_CON_FLD_GCLAST_EN,
@@ -189,6 +194,146 @@ int ovl_start(enum DISP_MODULE_ENUM module, void *handle)
 	DISP_REG_SET_FIELD(handle, DATAPATH_CON_FLD_OUTPUT_CLAMP,
 			   ovl_base + DISP_REG_OVL_DATAPATH_CON, 1);
 	return 0;
+}
+
+void ovl_dump_golden_setting(enum DISP_MODULE_ENUM module)
+{
+	unsigned long ovl_base = ovl_base_addr(module);
+	int i, layer_num;
+
+	layer_num = ovl_layer_num(module);
+
+	DDPDUMP("DUMP %s golden_setting\n", ddp_get_module_name(module));
+
+	for (i = 0; i < layer_num; i++) {
+		unsigned long layer_offset = i * OVL_LAYER_OFFSET + ovl_base;
+
+		DDPDUMP("RDMA%d_MEM_GMC_SETTING1\n", i);
+		DDPDUMP("[9:0]:%x [25:16]:%x [28]:%x [31]:%x\n",
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_MEM_GMC_ULTRA_THRESHOLD,
+					layer_offset + DISP_REG_OVL_RDMA0_MEM_GMC_SETTING),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_MEM_GMC_PRE_ULTRA_THRESHOLD,
+					layer_offset + DISP_REG_OVL_RDMA0_MEM_GMC_SETTING),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_MEM_GMC_ULTRA_THRESHOLD_HIGH_OFS,
+					layer_offset + DISP_REG_OVL_RDMA0_MEM_GMC_SETTING),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_MEM_GMC_PRE_ULTRA_THRESHOLD_HIGH_OFS,
+					layer_offset + DISP_REG_OVL_RDMA0_MEM_GMC_SETTING));
+	}
+
+	for (i = 0; i < layer_num; i++) {
+		unsigned long layer_offset = i * OVL_LAYER_OFFSET + ovl_base;
+
+		DDPDUMP("RDMA%d_FIFO_CTRL\n", i);
+		DDPDUMP("[9:0]:%u [25:16]:%u\n",
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_FIFO_THRD,
+					layer_offset + DISP_REG_OVL_RDMA0_FIFO_CTRL),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_FIFO_SIZE,
+					layer_offset + DISP_REG_OVL_RDMA0_FIFO_CTRL));
+	}
+
+	for (i = 0; i < layer_num; i++) {
+		DDPDUMP("RDMA%d_MEM_GMC_SETTING2\n", i);
+		DDPDUMP("[11:0]:%u [27:16]:%u [28]:%u [29]:%u [30]:%u\n",
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_MEM_GMC2_ISSUE_REQ_THRES,
+					ovl_base + DISP_REG_OVL_RDMA0_MEM_GMC_S2 + i * 4),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_MEM_GMC2_ISSUE_REQ_THRES_URG,
+					ovl_base + DISP_REG_OVL_RDMA0_MEM_GMC_S2 + i * 4),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_MEM_GMC2_REQ_THRES_PREULTRA,
+					ovl_base + DISP_REG_OVL_RDMA0_MEM_GMC_S2 + i * 4),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_MEM_GMC2_REQ_THRES_ULTRA,
+					ovl_base + DISP_REG_OVL_RDMA0_MEM_GMC_S2 + i * 4),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_MEM_GMC2_FORCE_REQ_THRES,
+					ovl_base + DISP_REG_OVL_RDMA0_MEM_GMC_S2 + i * 4));
+	}
+
+	DDPDUMP("RDMA_GREQ_NUM\n");
+	DDPDUMP("[3:0]%u [7:4]%u [11:8]%u [15:12]%u [23:16]%x [26:24]%u [27]%u [28]%u [29]%u [30]%u [31]%u\n",
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_LAYER0_GREQ_NUM,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_LAYER1_GREQ_NUM,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_LAYER2_GREQ_NUM,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_LAYER3_GREQ_NUM,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_OSTD_GREQ_NUM,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_GREQ_DIS_CNT,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_STOP_EN,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_GRP_END_STOP,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_GRP_BRK_STOP,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_IOBUF_FLUSH_PREULTRA,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_IOBUF_FLUSH_ULTRA,
+					ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM));
+	DDPDUMP("RDMA_GREQ_URG_NUM\n");
+	DDPDUMP("[3:0]:%u [7:4]:%u [11:8]:%u [15:12]:%u [25:16]:%u [28]:%u [29]:%u [31:30]:%u\n",
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_LAYER0_GREQ_URG_NUM,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_URG_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_LAYER1_GREQ_URG_NUM,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_URG_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_LAYER2_GREQ_URG_NUM,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_URG_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_LAYER3_GREQ_URG_NUM,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_URG_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_ARG_GREQ_URG_TH,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_URG_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_ARG_URG_BIAS,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_URG_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_NUM_SHT_VAL,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_URG_NUM),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_GREQ_NUM_SHT,
+				ovl_base + DISP_REG_OVL_RDMA_GREQ_URG_NUM));
+	DDPDUMP("RDMA_ULTRA_SRC\n");
+	DDPDUMP("[1:0]%u [3:2]%u [5:4]%u [7:6]%u [9:8]%u [11:10]%u [13:12]%u [15:14]%u\n",
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_PREULTRA_BUF_SRC,
+				ovl_base + DISP_REG_OVL_RDMA_ULTRA_SRC),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_PREULTRA_SMI_SRC,
+				ovl_base + DISP_REG_OVL_RDMA_ULTRA_SRC),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_PREULTRA_ROI_END_SRC,
+				ovl_base + DISP_REG_OVL_RDMA_ULTRA_SRC),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_PREULTRA_RDMA_SRC,
+				ovl_base + DISP_REG_OVL_RDMA_ULTRA_SRC),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_ULTRA_BUF_SRC,
+				ovl_base + DISP_REG_OVL_RDMA_ULTRA_SRC),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_ULTRA_SMI_SRC,
+				ovl_base + DISP_REG_OVL_RDMA_ULTRA_SRC),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_ULTRA_ROI_END_SRC,
+				ovl_base + DISP_REG_OVL_RDMA_ULTRA_SRC),
+			DISP_REG_GET_FIELD(FLD_OVL_RDMA_ULTRA_RDMA_SRC,
+				ovl_base + DISP_REG_OVL_RDMA_ULTRA_SRC));
+
+	for (i = 0; i < layer_num; i++) {
+		DDPDUMP("RDMA%d_BUF_LOW\n", i);
+		DDPDUMP("[11:0]:%x [23:12]:%x\n",
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_BUF_LOW_ULTRA_TH,
+					ovl_base + DISP_REG_OVL_RDMAn_BUF_LOW(i)),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_BUF_LOW_PREULTRA_TH,
+					ovl_base + DISP_REG_OVL_RDMAn_BUF_LOW(i)));
+	}
+
+	for (i = 0; i < layer_num; i++) {
+		DDPDUMP("RDMA%d_BUF_HIGH\n", i);
+		DDPDUMP("[23:12]:%x [31]:%x\n",
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_BUF_HIGH_PREULTRA_TH,
+					ovl_base + DISP_REG_OVL_RDMAn_BUF_HIGH(i)),
+				DISP_REG_GET_FIELD(FLD_OVL_RDMA_BUF_HIGH_PREULTRA_DIS,
+					ovl_base + DISP_REG_OVL_RDMAn_BUF_HIGH(i)));
+	}
+
+	DDPDUMP("DATAPATH_CON\n");
+	DDPDUMP("[0]:%u, [3]:%u [24]:%u\n",
+			DISP_REG_GET_FIELD(DATAPATH_CON_FLD_LAYER_SMI_ID_EN,
+				ovl_base + DISP_REG_OVL_DATAPATH_CON),
+			DISP_REG_GET_FIELD(DATAPATH_CON_FLD_OUTPUT_NO_RND,
+				ovl_base + DISP_REG_OVL_DATAPATH_CON),
+			DISP_REG_GET_FIELD(DATAPATH_CON_FLD_GCLAST_EN,
+				ovl_base + DISP_REG_OVL_DATAPATH_CON));
+
 }
 
 int ovl_stop(enum DISP_MODULE_ENUM module, void *handle)
@@ -456,7 +601,10 @@ static int ovl_layer_config(enum DISP_MODULE_ENUM module, unsigned int layer,
 
 	DISP_REG_SET(handle, DISP_REG_OVL_L0_CON + layer_offset, value);
 
-	DISP_REG_SET(handle, DISP_REG_OVL_L0_CLR + layer_offset_clr, 0xff000000);
+	if (cfg->source != OVL_LAYER_SOURCE_RESERVED)
+		DISP_REG_SET(handle, DISP_REG_OVL_L0_CLR + layer_offset_clr, 0xff000000);
+	else
+		DISP_REG_SET(handle, DISP_REG_OVL_L0_CLR + layer_offset_clr, govldimcolor);
 
 	DISP_REG_SET(handle, DISP_REG_OVL_L0_SRC_SIZE + layer_offset, dst_h << 16 | dst_w);
 
@@ -506,6 +654,11 @@ static int ovl_layer_config(enum DISP_MODULE_ENUM module, unsigned int layer,
 			REG_FLD_VAL(L_PITCH_FLD_DRGB_SEL, cfg->dst_alpha & 0x3) |
 			REG_FLD_VAL(L_PITCH_FLD_SURFL_EN, cfg->src_alpha & 0x1) |
 			REG_FLD_VAL(L_PITCH_FLD_SRC_PITCH, cfg->src_pitch);
+	if (format == UFMT_RGBA4444) {
+		value |= REG_FLD_VAL(L_PITCH_FLD_SRGB_SEL, (1)) |
+			REG_FLD_VAL(L_PITCH_FLD_DRGB_SEL, (2)) |
+			REG_FLD_VAL(L_PITCH_FLD_SURFL_EN, (1));
+	}
 
 	if (cfg->const_bld)
 		value |= REG_FLD_VAL((L_PITCH_FLD_CONST_BLD), (1));
@@ -958,6 +1111,9 @@ static int ovl_config_l(enum DISP_MODULE_ENUM module, struct disp_ddp_path_confi
 	int layer_id;
 	int ovl_layer = 0;
 	int enabled_ext_layers = 0, ext_sel_layers = 0;
+	struct golden_setting_context *golden_setting = pConfig->p_golden_setting_context;
+	unsigned int Bpp, fps;
+	unsigned long long tmp_bw, ovl_bw;
 
 	unsigned long layer_offset_rdma_ctrl;
 	unsigned long ovl_base = ovl_base_addr(module);
@@ -985,7 +1141,9 @@ static int ovl_config_l(enum DISP_MODULE_ENUM module, struct disp_ddp_path_confi
 
 	has_sec_layer = setup_ovl_sec(module, pConfig, handle);
 
-	for (layer_id = 0; layer_id < TOTAL_OVL_LAYER_NUM; layer_id++) {
+	ovl_bw = 0;
+	fps = golden_setting->fps;
+	for (layer_id = 0; layer_id < TOTAL_REAL_OVL_LAYER_NUM; layer_id++) {
 		struct OVL_CONFIG_STRUCT *ovl_cfg = &pConfig->ovl_config[layer_id];
 		int enable = ovl_cfg->layer_en;
 
@@ -1026,8 +1184,17 @@ static int ovl_config_l(enum DISP_MODULE_ENUM module, struct disp_ddp_path_confi
 		} else {
 			enabled_layers |= enable << ovl_cfg->phy_layer;
 		}
+
+		Bpp = ufmt_get_Bpp(ovl_cfg->fmt);
+		tmp_bw = ovl_cfg->dst_h * ovl_cfg->dst_w * fps * Bpp;
+		do_div(tmp_bw, 1000);
+		tmp_bw *= 1250;
+		do_div(tmp_bw, fps * 1000 * 1000);
+		ovl_bw = ovl_bw + tmp_bw;
+		DDPMSG("h:%u, w:%u, fps:%u, Bpp:%u, bw:%llu\n", pConfig->dst_h, pConfig->dst_w, fps, Bpp, tmp_bw);
 	}
 
+	DDPDBG("%s bw:%llu\n", ddp_get_module_name(module), ovl_bw);
 	DDPDBG("%s: enabled_layers=0x%01x, enabled_ext_layers=0x%01x, ext_sel_layers=0x%04x\n",
 		ddp_get_module_name(module), enabled_layers, enabled_ext_layers, ext_sel_layers >> 16);
 	DISP_REG_SET(handle, ovl_base_addr(module) + DISP_REG_OVL_SRC_CON, enabled_layers);
@@ -1042,6 +1209,13 @@ static int ovl_config_l(enum DISP_MODULE_ENUM module, struct disp_ddp_path_confi
 		DISP_REG_SET(handle, DISP_REG_OVL_L0_CON + last_yuv_layer_offset[ovl_idx], 0);
 
 	last_yuv_layer_offset[ovl_idx] = current_yuv_layer_offset[ovl_idx];
+
+	/* bandwidth report */
+	if (module == DISP_MODULE_OVL0) {
+		DISP_SLOT_SET(handle, DISPSYS_SLOT_BASE, DISP_SLOT_IS_DC, golden_setting->is_dc);
+		DISP_SLOT_SET(handle, DISPSYS_SLOT_BASE, DISP_SLOT_OVL0_BW, (unsigned int)ovl_bw);
+	} else if (module == DISP_MODULE_OVL0_2L)
+		DISP_SLOT_SET(handle, DISPSYS_SLOT_BASE, DISP_SLOT_OVL0_2L_BW, (unsigned int)ovl_bw);
 
 	return 0;
 }
@@ -1580,11 +1754,14 @@ void ovl_dump_analysis(enum DISP_MODULE_ENUM module)
 			DDPDUMP("ext layer%d: disabled\n", i);
 	}
 	ovl_printf_status(DISP_REG_GET(DISP_REG_OVL_FLOW_CTRL_DBG + offset));
+
+	ovl_dump_golden_setting(module);
 }
 
 int ovl_dump(enum DISP_MODULE_ENUM module, int level)
 {
 	ovl_dump_analysis(module);
+	ovl_dump_golden_setting(module);
 	ovl_dump_reg(module);
 
 	return 0;
@@ -1599,8 +1776,6 @@ static int ovl_golden_setting(enum DISP_MODULE_ENUM module, enum dst_module_type
 	unsigned int layer_greq_num;
 	unsigned int dst_w, dst_h;
 
-
-	return 0;
 
 	layer_num = ovl_layer_num(module);
 
@@ -1668,14 +1843,13 @@ static int ovl_golden_setting(enum DISP_MODULE_ENUM module, enum dst_module_type
 	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_OSTD_GREQ_NUM, 0xff);
 	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_GREQ_DIS_CNT, 1);
 	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_STOP_EN, 0);
-	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_GRP_END_STOP, 0);
-	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_GRP_BRK_STOP, 0);
+	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_GRP_END_STOP, 1);
+	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_GRP_BRK_STOP, 1);
 	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_IOBUF_FLUSH_PREULTRA, 1);
-	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_IOBUF_FLUSH_ULTRA, 0);
+	regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_IOBUF_FLUSH_ULTRA, 1);
 	DISP_REG_SET(cmdq, ovl_base + DISP_REG_OVL_RDMA_GREQ_NUM, regval);
 
 	/* DISP_REG_OVL_RDMA_GREQ_URG_NUM */
-	layer_greq_num = 3;
 	regval = REG_FLD_VAL(FLD_OVL_RDMA_GREQ_LAYER0_GREQ_URG_NUM, layer_greq_num);
 	if (layer_num > 0)
 		regval |= REG_FLD_VAL(FLD_OVL_RDMA_GREQ_LAYER1_GREQ_URG_NUM, layer_greq_num);
@@ -1691,7 +1865,10 @@ static int ovl_golden_setting(enum DISP_MODULE_ENUM module, enum dst_module_type
 	/* DISP_REG_OVL_RDMA_ULTRA_SRC */
 	regval = REG_FLD_VAL(FLD_OVL_RDMA_PREULTRA_BUF_SRC, 0);
 	regval |= REG_FLD_VAL(FLD_OVL_RDMA_PREULTRA_SMI_SRC, 0);
-	regval |= REG_FLD_VAL(FLD_OVL_RDMA_PREULTRA_ROI_END_SRC, 0);
+	if (dst_mod_type == DST_MOD_REAL_TIME)
+		regval |= REG_FLD_VAL(FLD_OVL_RDMA_PREULTRA_ROI_END_SRC, 0);
+	else
+		regval |= REG_FLD_VAL(FLD_OVL_RDMA_PREULTRA_ROI_END_SRC, 2);
 	regval |= REG_FLD_VAL(FLD_OVL_RDMA_PREULTRA_RDMA_SRC, 1);
 	regval |= REG_FLD_VAL(FLD_OVL_RDMA_ULTRA_BUF_SRC, 0);
 	regval |= REG_FLD_VAL(FLD_OVL_RDMA_ULTRA_SMI_SRC, 0);
@@ -1708,7 +1885,7 @@ static int ovl_golden_setting(enum DISP_MODULE_ENUM module, enum dst_module_type
 	if (dst_mod_type == DST_MOD_REAL_TIME)
 		regval |= REG_FLD_VAL(FLD_OVL_RDMA_BUF_LOW_PREULTRA_TH, 0);
 	else
-		regval |= REG_FLD_VAL(FLD_OVL_RDMA_BUF_LOW_PREULTRA_TH, 18);
+		regval |= REG_FLD_VAL(FLD_OVL_RDMA_BUF_LOW_PREULTRA_TH, 0x18);
 
 	for (i = 0; i < layer_num; i++)
 		DISP_REG_SET(cmdq, ovl_base + DISP_REG_OVL_RDMAn_BUF_LOW(i), regval);
@@ -1718,7 +1895,7 @@ static int ovl_golden_setting(enum DISP_MODULE_ENUM module, enum dst_module_type
 	if (dst_mod_type == DST_MOD_REAL_TIME)
 		regval |= REG_FLD_VAL(FLD_OVL_RDMA_BUF_HIGH_PREULTRA_TH, 0);
 	else
-		regval |= REG_FLD_VAL(FLD_OVL_RDMA_BUF_HIGH_PREULTRA_TH, 90);
+		regval |= REG_FLD_VAL(FLD_OVL_RDMA_BUF_HIGH_PREULTRA_TH, 0x90);
 
 	for (i = 0; i < layer_num; i++)
 		DISP_REG_SET(cmdq, ovl_base + DISP_REG_OVL_RDMAn_BUF_HIGH(i), regval);

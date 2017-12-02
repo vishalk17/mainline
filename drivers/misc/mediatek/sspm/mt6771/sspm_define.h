@@ -28,7 +28,11 @@
 #define SSPM_LOGGER_SUPPORT         (1)
 #define SSPM_LASTK_SUPPORT          (0)
 #define SSPM_COREDUMP_SUPPORT       (0)
+#ifdef CONFIG_ARM
 #define SSPM_EMI_PROTECTION_SUPPORT (0)
+#else
+#define SSPM_EMI_PROTECTION_SUPPORT (1)
+#endif
 
 /*
  * TimeSync v2
@@ -40,14 +44,14 @@
 #define SSPM_TIMESYNC_SUPPORT       (0)
 #else
 #define SSPM_TIMESYNC_SUPPORT       (1)
-#define TIMESYNC_TIMEOUT	(60 * 60 * HZ)
 #endif
 
+#define TIMESYNC_TIMEOUT	(60 * 60 * HZ)
 
 #define PLT_INIT			0x504C5401
 #define PLT_LOG_ENABLE		0x504C5402
 #define PLT_TIMESYNC_SYNC	0x504C5405
-
+#define PLT_TIMESYNC_SRAM_TEST	0x504C5406
 
 #define mtk_timer_src_count(...)    arch_counter_get_cntvct(__VA_ARGS__)
 

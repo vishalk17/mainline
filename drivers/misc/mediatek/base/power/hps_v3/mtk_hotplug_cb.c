@@ -1,15 +1,14 @@
 /*
- * Copyright (c) 2016 MediaTek Inc.
+ * Copyright (C) 2016 MediaTek Inc.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
 #include <linux/io.h>
@@ -22,7 +21,12 @@
 #include <linux/delay.h>
 #include <linux/bug.h>
 #include <linux/suspend.h>
+
 #include <asm/cacheflush.h>
+#ifdef CONFIG_ARM64
+#include <asm/cpu_ops.h>
+#endif
+
 #include <mt-plat/mtk_secure_api.h>
 #include <mt-plat/mtk_auxadc_intf.h>
 #include <linux/topology.h>
@@ -40,6 +44,15 @@
 #endif
 
 #define BUCK_CTRL_DBLOG		(0)
+
+#if defined(CONFIG_MACH_MT6771) || defined(CONFIG_MACH_MT6775)
+#define MTK_DRCC_SUPPORT
+#ifdef MTK_DRCC_SUPPORT
+#include "mtk_drcc.h"
+	/* Use include: extern void drcc_fail_composite(void); */
+static unsigned int cpus_L;
+#endif
+#endif
 
 static struct notifier_block cpu_hotplug_nb;
 #if defined(CONFIG_MACH_MT6799) || defined(CONFIG_MACH_MT6759)
@@ -69,6 +82,31 @@ static int cpu_hotplug_cb_notifier(struct notifier_block *self,
 	int ret;
 #endif
 	switch (action) {
+	case CPU_ONLINE:
+	#if defined(CONFIG_MACH_MT6771) || defined(CONFIG_MACH_MT6775)
+		#ifdef MTK_DRCC_SUPPORT
+		arch_get_cluster_cpus(&cpuhp_cpumask, 1);
+		cpumask_and(&cpu_online_cpumask,
+			&cpuhp_cpumask,
+			cpu_online_mask);
+		cpus_L = cpumask_weight(&cpu_online_cpumask);
+		/* Calibration Fail */
+		#if 0
+		pr_notice("[xxxx_drcc HPCB] c=%d, L_cs=%d\n ",
+			cpu,
+			cpus_L);
+		#endif
+		if ((cpus_L == 1) &&
+			(mtk_drcc_calibration_result() == 0)) {
+			/* Log into SRAM debug. */
+			/* DRCC_debug_info(1,3,123456); */
+			pr_notice("DRCC calibration fail !!!\n");
+			/* drcc_fail_composite(); */
+		}
+		/* pr_notice("DRCC calibration done !!!\n"); */
+		#endif
+	#endif
+		break;
 	case CPU_UP_PREPARE:
 	case CPU_UP_PREPARE_FROZEN:
 		if (cpu < cpumask_weight(mtk_cpu_cluster0_mask)) {
@@ -96,7 +134,10 @@ static int cpu_hotplug_cb_notifier(struct notifier_block *self,
 				/*3. Switch to HW mode*/
 				mp_enter_suspend(0, 1);
 #endif
-				mt_secure_call(MTK_SIP_POWER_UP_CLUSTER, 0, 0, 0);
+#if !defined(CONFIG_MACH_MT6771) && !defined(CONFIG_MACH_MT6775)
+				mt_secure_call(MTK_SIP_POWER_UP_CLUSTER,
+					       0, 0, 0);
+#endif
 			}
 		} else if ((cpu >= cpumask_weight(mtk_cpu_cluster0_mask)) &&
 			(cpu < (cpumask_weight(mtk_cpu_cluster0_mask) +
@@ -144,7 +185,10 @@ static int cpu_hotplug_cb_notifier(struct notifier_block *self,
 					/*6. Switch to HW mode*/
 					mp_enter_suspend(1, 1);
 #endif
-				mt_secure_call(MTK_SIP_POWER_UP_CLUSTER, 1, 0, 0);
+#if !defined(CONFIG_MACH_MT6771) && !defined(CONFIG_MACH_MT6775)
+					mt_secure_call(MTK_SIP_POWER_UP_CLUSTER,
+						       1, 0, 0);
+#endif
 			}
 		} else if ((cpu >= (cpumask_weight(mtk_cpu_cluster0_mask) +
 				cpumask_weight(mtk_cpu_cluster1_mask))) &&
@@ -173,7 +217,10 @@ static int cpu_hotplug_cb_notifier(struct notifier_block *self,
 				/*3. Switch to HW mode*/
 				mp_enter_suspend(2, 1);
 #endif
-				mt_secure_call(MTK_SIP_POWER_UP_CLUSTER, 2, 0, 0);
+#if !defined(CONFIG_MACH_MT6771) && !defined(CONFIG_MACH_MT6775)
+				mt_secure_call(MTK_SIP_POWER_UP_CLUSTER,
+					       2, 0, 0);
+#endif
 			}
 		}
 		break;
@@ -290,6 +337,18 @@ static __init int hotplug_cb_init(void)
 {
 	int ret;
 	int i;
+
+	for (i = setup_max_cpus; i < num_possible_cpus(); i++) {
+#ifdef CONFIG_ARM64
+		if (!cpu_ops[i])
+			WARN_ON(1);
+		if (cpu_ops[i]->cpu_prepare(i))
+			WARN_ON(1);
+
+		per_cpu(cpu_number, i) = i;
+#endif
+		set_cpu_present(i, true);
+	}
 
 	mp_enter_suspend(0, 1);/*Switch LL cluster to HW mode*/
 	cpumask_clear(mtk_cpu_cluster0_mask);

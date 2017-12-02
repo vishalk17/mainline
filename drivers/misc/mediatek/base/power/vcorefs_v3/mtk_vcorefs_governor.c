@@ -34,7 +34,7 @@
 #include <mtk_eem.h>
 #include "mmdvfs_mgr.h"
 
-#if defined(CONFIG_MACH_MT6775)
+#if defined(CONFIG_MACH_MT6775) || defined(CONFIG_MACH_MT6771)
 #include <mtk_dvfsrc_reg.h>
 #include <helio-dvfsrc-opp.h>
 #include <mtk_spm_vcore_dvfs_ipi.h>
@@ -183,6 +183,7 @@ static struct governor_profile governor_ctrl = {
 };
 
 int kicker_table[LAST_KICKER] __nosavedata;
+EXPORT_SYMBOL(kicker_table);
 
 static struct opp_profile opp_table[NUM_OPP] __nosavedata;
 
@@ -308,11 +309,13 @@ int vcorefs_get_num_opp(void)
 {
 	return NUM_OPP;
 }
+EXPORT_SYMBOL(vcorefs_get_num_opp);
 
 int vcorefs_get_hw_opp(void)
 {
 	return spm_vcorefs_get_opp();
 }
+EXPORT_SYMBOL(vcorefs_get_hw_opp);
 
 int vcorefs_get_sw_opp(void)
 {
@@ -333,6 +336,7 @@ int vcorefs_get_curr_vcore(void)
 	return 0;
 #endif
 }
+EXPORT_SYMBOL(vcorefs_get_curr_vcore);
 
 int vcorefs_get_curr_ddr(void)
 {
@@ -346,11 +350,14 @@ int vcorefs_get_curr_ddr(void)
 	return 0;
 #endif
 }
+EXPORT_SYMBOL(vcorefs_get_curr_ddr);
 
 int vcorefs_get_vcore_by_steps(u32 opp)
 {
 #if defined(CONFIG_MACH_MT6775)
 	return vcore_pmic_to_uv(get_vcore_opp_volt(opp));
+#elif defined(CONFIG_MACH_MT6771)
+	return get_vcore_opp_volt(opp);
 #else
 	return vcore_pmic_to_uv(get_vcore_ptp_volt(opp));
 #endif
@@ -373,6 +380,7 @@ char *governor_get_kicker_name(int id)
 {
 	return kicker_name[id];
 }
+EXPORT_SYMBOL(governor_get_kicker_name);
 
 char *vcorefs_get_opp_table_info(char *p)
 {
@@ -421,7 +429,7 @@ static void set_vcorefs_en(void)
 	flag = spm_dvfs_flag_init();
 	spm_go_to_vcorefs(flag);
 	mutex_unlock(&governor_mutex);
-#if defined(CONFIG_MACH_MT6759) || defined(CONFIG_MACH_MT6758)
+#if defined(CONFIG_MACH_MT6759) || defined(CONFIG_MACH_MT6758) || defined(CONFIG_MACH_MT6771)
 	vcorefs_late_init_dvfs();
 #endif
 }
@@ -476,7 +484,10 @@ int governor_debug_store(const char *buf)
 		} else if (!strcmp(cmd, "isr_debug")) {
 			vcorefs_enable_debug_isr(val);
 		} else if (!strcmp(cmd, "i_hwpath")) {
-			gvrctrl->i_hwpath = val;
+			gvrctrl->i_hwpath = !!val;
+#if defined(CONFIG_MACH_MT6771)
+			dvfsrc_hw_policy_mask(gvrctrl->i_hwpath);
+#endif
 		} else {
 			r = -EPERM;
 		}
@@ -582,8 +593,31 @@ int vcorefs_late_init_dvfs(void)
 	return 0;
 }
 
+#if defined(CONFIG_MACH_MT6775) || defined(CONFIG_MACH_MT6771)
+void dvfsrc_force_opp(int opp)
+{
+	int level;
+
+	if (opp >= VCORE_DVFS_OPP_NUM || opp < 0) {
+		writel(readl(DVFSRC_BASIC_CONTROL) & ~(1 << 15), DVFSRC_BASIC_CONTROL);
+		writel(readl(DVFSRC_FORCE) & 0xFFFF0000, DVFSRC_FORCE);
+	} else {
+		level = 1 << (VCORE_DVFS_OPP_NUM - opp - 1);
+		writel((readl(DVFSRC_FORCE) & 0xFFFF0000) | level, DVFSRC_FORCE);
+		writel(readl(DVFSRC_BASIC_CONTROL) | (1 << 15), DVFSRC_BASIC_CONTROL);
+	}
+}
+#endif
+
 #ifdef CONFIG_MTK_TINYSYS_SSPM_SUPPORT
 #if defined(CONFIG_MACH_MT6775) || defined(CONFIG_MACH_MT6771)
+int qos_ipi_to_sspm_command(void *buffer, int slot)
+{
+	int ack_data;
+
+	return sspm_ipi_send_sync(IPI_ID_QOS, IPI_OPT_DEFAUT, buffer, slot, &ack_data, 1);
+}
+
 void dvfsrc_update_sspm_vcore_opp_table(int opp, unsigned int vcore_uv)
 {
 	struct qos_data qos_d;
@@ -592,7 +626,7 @@ void dvfsrc_update_sspm_vcore_opp_table(int opp, unsigned int vcore_uv)
 	qos_d.u.vcore_opp.opp = opp;
 	qos_d.u.vcore_opp.vcore_uv = vcore_uv;
 
-	sspm_ipi_send_async(IPI_ID_QOS, IPI_OPT_DEFAUT, &qos_d, 3);
+	qos_ipi_to_sspm_command(&qos_d, 3);
 }
 
 void dvfsrc_update_sspm_ddr_opp_table(int opp, unsigned int ddr_khz)
@@ -603,12 +637,12 @@ void dvfsrc_update_sspm_ddr_opp_table(int opp, unsigned int ddr_khz)
 	qos_d.u.ddr_opp.opp = opp;
 	qos_d.u.ddr_opp.ddr_khz = ddr_khz;
 
-	sspm_ipi_send_async(IPI_ID_QOS, IPI_OPT_DEFAUT, &qos_d, 3);
+	qos_ipi_to_sspm_command(&qos_d, 3);
 }
 #endif
 #endif
 
-#if defined(CONFIG_MACH_MT6775)
+#if defined(CONFIG_MACH_MT6775) || defined(CONFIG_MACH_MT6771)
 int dvfsrc_get_bw(int type)
 {
 	int ret = 0;
@@ -641,7 +675,9 @@ int dvfsrc_get_bw(int type)
 
 	return ret;
 }
+#endif
 
+#if defined(CONFIG_MACH_MT6775)
 int get_cur_vcore_dvfs_opp(void)
 {
 	int dvfsrc_level_bit = readl(DVFSRC_LEVEL) >> 16;
@@ -688,7 +724,7 @@ void vcorefs_init_opp_table(void)
 				opp_ctrl_table[opp].ddr_khz);
 	}
 
-#if defined(CONFIG_MACH_MT6775)
+#if defined(CONFIG_MACH_MT6775) || defined(CONFIG_MACH_MT6771)
 	spm_vcorefs_pwarp_cmd();
 #else
 	mt_eem_vcorefs_set_volt();

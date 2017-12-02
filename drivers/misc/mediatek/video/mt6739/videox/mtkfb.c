@@ -2339,6 +2339,11 @@ int pan_display_test(int frame_num, int bpp)
 	int yoffset_max;
 	int yoffset;
 
+	if (frame_num < -1) {
+		DISPERR("%s: frame_num should be an unsigned integer:frame_num = %d",
+			__func__, frame_num);
+		return -1;
+	}
 	mtkfb_fbi->var.yoffset = 0;
 	disp_get_fb_address((unsigned long *)&fb_va, &fb_pa);
 	fb_size = mtkfb_fbi->fix.smem_len;

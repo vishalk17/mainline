@@ -15,7 +15,7 @@
 #define __MT_EMI_H__
 
 /* submoduce control */
-#define ENABLE_BWL	0
+#define ENABLE_BWL	1
 #define ENABLE_MPU	1
 #define ENABLE_ELM	0
 #define ENABLE_MBW	0
@@ -25,7 +25,7 @@
 #define ELM_IRQ_INDEX	1 /* Bianco uses CGM IRQ as ELM IRQ */
 
 /* macro for MPU */
-#define ENABLE_AP_REGION	0
+#define ENABLE_AP_REGION	1
 #define AP_REGION_ID		31
 
 #define EMI_MPUD0_ST		(CEN_EMI_BASE + 0x160)

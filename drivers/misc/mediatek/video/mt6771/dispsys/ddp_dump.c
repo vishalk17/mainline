@@ -22,6 +22,9 @@
 #include "ddp_rdma.h"
 #include "ddp_rdma_ex.h"
 #include "ddp_dsi.h"
+#include "ddp_dpi.h"
+#include "ddp_dbi.h"
+
 
 static char *ddp_signal_0(int bit)
 {
@@ -224,6 +227,8 @@ static char *ddp_get_mutex_module0_name(unsigned int bit)
 	case 18: return "PWM0";
 	case 19: return "DSI";
 	case 20: return "DPI";
+	case 22: return "RSZ";
+	case 25: return "DBI";
 	default: return "mutex-unknown";
 	}
 }
@@ -354,6 +359,12 @@ static char *ddp_clock_1(int bit)
 		return "dpi_interface, ";
 	case 7:
 		return "26M, ";
+	case 9:
+		return "rsz, ";
+	case 12:
+		return "dbi_mm(cg), ";
+	case 13:
+		return "dbi_interface, ";
 	default:
 		return NULL;
 	}
@@ -644,6 +655,21 @@ static void mmsys_config_dump_reg(void)
 		0x940, INREG32(module_base + 0x940),
 		0x944, INREG32(module_base + 0x944));
 	DDPDUMP("MMSYS_CONFIG: 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x\n",
+		0x948, INREG32(module_base + 0x948),
+		0x94C, INREG32(module_base + 0x94C),
+		0x950, INREG32(module_base + 0x950),
+		0x954, INREG32(module_base + 0x954));
+	DDPDUMP("MMSYS_CONFIG: 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x\n",
+		0x958, INREG32(module_base + 0x958),
+		0x95C, INREG32(module_base + 0x95C),
+		0x960, INREG32(module_base + 0x960),
+		0x964, INREG32(module_base + 0x964));
+	DDPDUMP("MMSYS_CONFIG: 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x\n",
+		0x968, INREG32(module_base + 0x968),
+		0x96C, INREG32(module_base + 0x96C),
+		0x970, INREG32(module_base + 0x970),
+		0x974, INREG32(module_base + 0x974));
+	DDPDUMP("MMSYS_CONFIG: 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x\n",
 		0xF00, INREG32(module_base + 0xF00),
 		0xF04, INREG32(module_base + 0xF04),
 		0xF08, INREG32(module_base + 0xF08),
@@ -668,6 +694,11 @@ static void mmsys_config_dump_reg(void)
 		0xF54, INREG32(module_base + 0xF54),
 		0xF58, INREG32(module_base + 0xF58),
 		0xF5C, INREG32(module_base + 0xF5C));
+	DDPDUMP("MMSYS_CONFIG: 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x\n",
+		0xF50, INREG32(module_base + 0xF60),
+		0xF54, INREG32(module_base + 0xF64),
+		0xF58, INREG32(module_base + 0xF68),
+		0xF5C, INREG32(module_base + 0xF6C));
 	DDPDUMP("MMSYS_CONFIG: 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x, 0x%04x=0x%08x\n",
 		0xF80, INREG32(module_base + 0xF80),
 		0xF84, INREG32(module_base + 0xF84),
@@ -1436,6 +1467,26 @@ static void dither_dump_analyze(enum DISP_MODULE_ENUM module)
 	     (DISP_REG_GET(DISP_REG_DITHER_OUT_CNT + i * offset) >> 16) & 0x1fff);
 }
 
+static void dpi_dump_reg(enum DISP_MODULE_ENUM module)
+{
+	ddp_dpi_dump(module, 1);
+#if 0
+	int i;
+
+	DDPDUMP("-- Start dump DPI registers --\n");
+
+	for (i = 0; i <= 0x40; i += 4)
+		DDPDUMP("DPI+%04x: 0x%08x\n", i, INREG32(DISPSYS_DPI_BASE + i));
+
+	for (i = 0x68; i <= 0x7C; i += 4)
+		DDPDUMP("DPI+%04x: 0x%08x\n", i, INREG32(DISPSYS_DPI_BASE + i));
+
+	DDPDUMP("DPI+Color Bar    : 0x%04x : 0x%08x\n", 0xF00, INREG32(DISPSYS_DPI_BASE + 0xF00));
+	DDPDUMP("DPI MMSYS_CG_CON0: 0x%08x\n", INREG32(DISP_REG_CONFIG_MMSYS_CG_CON0));
+	DDPDUMP("DPI MMSYS_CG_CON1: 0x%08x\n", INREG32(DISP_REG_CONFIG_MMSYS_CG_CON1));
+#endif
+}
+
 static void dsi_dump_reg(enum DISP_MODULE_ENUM module)
 {
 	DSI_DumpRegisters(module, 1);
@@ -1491,6 +1542,12 @@ int ddp_dump_reg(enum DISP_MODULE_ENUM module)
 	case DISP_MODULE_PWM0:
 		pwm_dump_reg(module);
 		break;
+	case DISP_MODULE_DPI:
+		dpi_dump_reg(module);
+		break;
+	case DISP_MODULE_DBI:
+		ddp_dbi_dump_reg(module);
+		break;
 	case DISP_MODULE_DSI0:
 	case DISP_MODULE_DSI1:
 	case DISP_MODULE_DSIDUAL:
@@ -1545,6 +1602,9 @@ int ddp_dump_analysis(enum DISP_MODULE_ENUM module)
 	case DISP_MODULE_DSI1:
 	case DISP_MODULE_DSIDUAL:
 		dsi_analysis(module);
+		break;
+	case DISP_MODULE_DBI:
+		dbi_analysis(module);
 		break;
 	case DISP_MODULE_CCORR0:
 		ccorr_dump_analyze(module);

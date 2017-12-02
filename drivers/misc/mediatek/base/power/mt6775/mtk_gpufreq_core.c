@@ -98,8 +98,10 @@ static struct g_opp_table_info *g_opp_table;
 static struct g_opp_table_info *g_opp_table_default;
 static struct g_pmic_info *g_pmic;
 static struct g_clk_info *g_clk;
+#ifdef GPUFREQ_SUPPORT_CT
+/* CT0 opp table */
 static struct g_opp_table_info g_opp_table_e1_0[] = {
-	GPUOP(GPU_DVFS_FREQ0, GPU_DVFS_VOLT0, 0),
+	GPUOP(GPU_DVFS_FREQ0, GPU_DVFS_VOLT0_CT, 0),
 	GPUOP(GPU_DVFS_FREQ1, GPU_DVFS_VOLT1_CT0, 1),
 	GPUOP(GPU_DVFS_FREQ2, GPU_DVFS_VOLT2_CT0, 2),
 	GPUOP(GPU_DVFS_FREQ3, GPU_DVFS_VOLT3_CT0, 3),
@@ -116,8 +118,9 @@ static struct g_opp_table_info g_opp_table_e1_0[] = {
 	GPUOP(GPU_DVFS_FREQ14, GPU_DVFS_VOLT14_CT0, 14),
 	GPUOP(GPU_DVFS_FREQ15, GPU_DVFS_VOLT15_CT0, 15),
 };
+/* CT1 opp table */
 static struct g_opp_table_info g_opp_table_e1_1[] = {
-	GPUOP(GPU_DVFS_FREQ0, GPU_DVFS_VOLT0, 0),
+	GPUOP(GPU_DVFS_FREQ0, GPU_DVFS_VOLT0_CT, 0),
 	GPUOP(GPU_DVFS_FREQ1, GPU_DVFS_VOLT1_CT1, 1),
 	GPUOP(GPU_DVFS_FREQ2, GPU_DVFS_VOLT2_CT1, 2),
 	GPUOP(GPU_DVFS_FREQ3, GPU_DVFS_VOLT3_CT1, 3),
@@ -134,9 +137,9 @@ static struct g_opp_table_info g_opp_table_e1_1[] = {
 	GPUOP(GPU_DVFS_FREQ14, GPU_DVFS_VOLT14_CT1, 14),
 	GPUOP(GPU_DVFS_FREQ15, GPU_DVFS_VOLT15_CT1, 15),
 };
-
+/* CT2 opp table */
 static struct g_opp_table_info g_opp_table_e1_2[] = {
-	GPUOP(GPU_DVFS_FREQ0, GPU_DVFS_VOLT0, 0),
+	GPUOP(GPU_DVFS_FREQ0, GPU_DVFS_VOLT0_CT, 0),
 	GPUOP(GPU_DVFS_FREQ1, GPU_DVFS_VOLT1_CT2, 1),
 	GPUOP(GPU_DVFS_FREQ2, GPU_DVFS_VOLT2_CT2, 2),
 	GPUOP(GPU_DVFS_FREQ3, GPU_DVFS_VOLT3_CT2, 3),
@@ -153,9 +156,9 @@ static struct g_opp_table_info g_opp_table_e1_2[] = {
 	GPUOP(GPU_DVFS_FREQ14, GPU_DVFS_VOLT14_CT2, 14),
 	GPUOP(GPU_DVFS_FREQ15, GPU_DVFS_VOLT15_CT2, 15),
 };
-
+/* CT3 opp table */
 static struct g_opp_table_info g_opp_table_e1_3[] = {
-	GPUOP(GPU_DVFS_FREQ0, GPU_DVFS_VOLT0, 0),
+	GPUOP(GPU_DVFS_FREQ0, GPU_DVFS_VOLT0_CT, 0),
 	GPUOP(GPU_DVFS_FREQ1, GPU_DVFS_VOLT1_CT3, 1),
 	GPUOP(GPU_DVFS_FREQ2, GPU_DVFS_VOLT2_CT3, 2),
 	GPUOP(GPU_DVFS_FREQ3, GPU_DVFS_VOLT3_CT3, 3),
@@ -172,6 +175,27 @@ static struct g_opp_table_info g_opp_table_e1_3[] = {
 	GPUOP(GPU_DVFS_FREQ14, GPU_DVFS_VOLT14_CT3, 14),
 	GPUOP(GPU_DVFS_FREQ15, GPU_DVFS_VOLT15_CT3, 15),
 };
+#else
+/* classic opp table */
+static struct g_opp_table_info g_opp_table_e1_4[] = {
+	GPUOP(GPU_DVFS_FREQ0, GPU_DVFS_VOLT0, 0),
+	GPUOP(GPU_DVFS_FREQ1, GPU_DVFS_VOLT1, 1),
+	GPUOP(GPU_DVFS_FREQ2, GPU_DVFS_VOLT2, 2),
+	GPUOP(GPU_DVFS_FREQ3, GPU_DVFS_VOLT3, 3),
+	GPUOP(GPU_DVFS_FREQ4, GPU_DVFS_VOLT4, 4),
+	GPUOP(GPU_DVFS_FREQ5, GPU_DVFS_VOLT5, 5),
+	GPUOP(GPU_DVFS_FREQ6, GPU_DVFS_VOLT6, 6),
+	GPUOP(GPU_DVFS_FREQ7, GPU_DVFS_VOLT7, 7),
+	GPUOP(GPU_DVFS_FREQ8, GPU_DVFS_VOLT8, 8),
+	GPUOP(GPU_DVFS_FREQ9, GPU_DVFS_VOLT9, 9),
+	GPUOP(GPU_DVFS_FREQ10, GPU_DVFS_VOLT10, 10),
+	GPUOP(GPU_DVFS_FREQ11, GPU_DVFS_VOLT11, 11),
+	GPUOP(GPU_DVFS_FREQ12, GPU_DVFS_VOLT12, 12),
+	GPUOP(GPU_DVFS_FREQ13, GPU_DVFS_VOLT13, 13),
+	GPUOP(GPU_DVFS_FREQ14, GPU_DVFS_VOLT14, 14),
+	GPUOP(GPU_DVFS_FREQ15, GPU_DVFS_VOLT15, 15),
+};
+#endif
 
 static const struct of_device_id g_gpufreq_of_match[] = {
 	{.compatible = "mediatek,mt6775-gpufreq",},
@@ -1522,11 +1546,10 @@ static void gpu_dvfs_switch_to_univpll(bool on)
 
 	if (on) {
 		clk_set_parent(g_clk->clk_mux, g_clk->clk_sub_parent);
-		clk_disable_unprepare(g_clk->clk_mux);
 	} else {
 		clk_set_parent(g_clk->clk_mux, g_clk->clk_main_parent);
-		clk_disable_unprepare(g_clk->clk_mux);
 	}
+	clk_disable_unprepare(g_clk->clk_mux);
 }
 #endif
 
@@ -1584,7 +1607,7 @@ static void __mt_gpufreq_clock_switch(unsigned int freq_new)
 		g_bParking = false;
 	} else {
 		/* Modify gpupll_ck */
-		/* mt_dfs_general_pll(FH_PLL6, dds); */
+		mt_dfs_general_pll(FH_PLL6, dds);
 	}
 
 	mfgpll = DRV_Reg32(GPUPLL_CON1);
@@ -2333,6 +2356,7 @@ static int __mt_gpufreq_pdrv_probe(struct platform_device *pdev)
 	gpufreq_pr_debug("@%s: setup OPP table\n", __func__);
 
 	efuse_for_CT = (get_devinfo_with_index(50) & 0x50000000) >> 28;
+#ifdef GPUFREQ_SUPPORT_CT
 	if (efuse_for_CT == 0x5)
 		__mt_gpufreq_setup_opp_table(g_opp_table_e1_0, ARRAY_SIZE(g_opp_table_e1_0));
 	else if (efuse_for_CT == 0x4)
@@ -2342,6 +2366,9 @@ static int __mt_gpufreq_pdrv_probe(struct platform_device *pdev)
 	else /* efuse_for_CT == 0x0 */
 		__mt_gpufreq_setup_opp_table(g_opp_table_e1_3, ARRAY_SIZE(g_opp_table_e1_3));
 	gpufreq_pr_debug("@%s: efuse: %u\n", __func__, efuse_for_CT);
+#else
+	__mt_gpufreq_setup_opp_table(g_opp_table_e1_4, ARRAY_SIZE(g_opp_table_e1_4));
+#endif
 
 	/* setup PMIC init value */
 	g_vgpu_sfchg_rrate = __calculate_vgpu_sfchg_rate(true);

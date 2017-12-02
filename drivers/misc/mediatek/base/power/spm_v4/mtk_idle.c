@@ -174,11 +174,12 @@ void __attribute__((weak)) idle_refcnt_dec(void)
 
 #endif
 
-static bool idle_force_vcore_lp_mode;
+static int idle_force_vcore_lp_mode;
 static bool idle_by_pass_secure_cg;
 static unsigned int idle_block_mask[NR_TYPES][NF_CG_STA_RECORD];
 static bool clkmux_cond[NR_TYPES];
 static unsigned int clkmux_block_mask[NR_TYPES][NF_CLK_CFG];
+static unsigned int clkmux_addr[NF_CLK_CFG];
 
 /* DeepIdle */
 static unsigned int     dpidle_time_criteria = 26000; /* 2ms */
@@ -202,6 +203,7 @@ static unsigned long    soidle3_block_cnt[NR_REASONS] = {0};
 static bool             soidle3_by_pass_cg;
 static bool             soidle3_by_pass_pll;
 static bool             soidle3_by_pass_en;
+static bool             soidle3_by_pass_disp_pwm;
 static u32              sodi3_flags = SODI_FLAG_REDUCE_LOG;
 static int              sodi3_by_uptime_count;
 
@@ -265,7 +267,8 @@ EXPORT_SYMBOL_GPL(mtk_idle_notifier_call_chain);
 /*
  * Check clkmux condition
  *   1. Only in deepidle/SODI3
- *   2. After ufs_cb_before_xxidle()
+ *   2. After mtk_idle_notifier_call_chain()
+ *       - To ensure other subsystem controls its clkmux well
  */
 static unsigned int check_and_update_vcore_lp_mode_cond(int type)
 {
@@ -275,10 +278,20 @@ static unsigned int check_and_update_vcore_lp_mode_cond(int type)
 
 	clkmux_cond[type] = mtk_idle_check_clkmux(type, clkmux_block_mask);
 
-	op_cond |=
-		idle_force_vcore_lp_mode ?
-		DEEPIDLE_OPT_VCORE_LP_MODE :
-		(clkmux_cond[type] ? DEEPIDLE_OPT_VCORE_LP_MODE : 0);
+	switch (idle_force_vcore_lp_mode) {
+	case 0:
+		/* by clkmux check */
+		op_cond |= (clkmux_cond[type] ? DEEPIDLE_OPT_VCORE_LP_MODE : 0);
+		break;
+	case 1:
+		/* enter LP mode */
+		op_cond |= DEEPIDLE_OPT_VCORE_LP_MODE;
+		break;
+	case 2:
+		/* no enter LP mode */
+		op_cond = (op_cond & ~DEEPIDLE_OPT_VCORE_LP_MODE);
+		break;
+	}
 
 	return op_cond;
 }
@@ -499,9 +512,11 @@ static bool soidle3_can_enter(int cpu, int reason)
 		}
 	}
 
-	if (!mtk_idle_disp_is_pwm_rosc()) {
-		reason = BY_PWM;
-		goto out;
+	if (soidle3_by_pass_disp_pwm == 0) {
+		if (!mtk_idle_disp_is_pwm_rosc()) {
+			reason = BY_PWM;
+			goto out;
+		}
 	}
 
 	if (soidle3_by_pass_pll == 0) {
@@ -793,6 +808,7 @@ static u32 slp_spm_SODI3_flags = {
 	SPM_FLAG_DIS_VCORE_DFS |
 	SPM_FLAG_DIS_ATF_ABORT |
 	SPM_FLAG_KEEP_CSYSPWRUPACK_HIGH |
+	/* SPM_FLAG_DIS_VPROC_VSRAM_DVS | */
 #if !defined(CONFIG_MTK_TINYSYS_SSPM_SUPPORT)
 	SPM_FLAG_DIS_SSPM_SRAM_SLEEP |
 #endif
@@ -806,6 +822,7 @@ static u32 slp_spm_SODI_flags = {
 	SPM_FLAG_DIS_VCORE_DFS |
 	SPM_FLAG_DIS_ATF_ABORT |
 	SPM_FLAG_KEEP_CSYSPWRUPACK_HIGH |
+	/* SPM_FLAG_DIS_VPROC_VSRAM_DVS | */
 #if !defined(CONFIG_MTK_TINYSYS_SSPM_SUPPORT)
 	SPM_FLAG_DIS_SSPM_SRAM_SLEEP |
 #endif
@@ -820,6 +837,7 @@ u32 slp_spm_deepidle_flags = {
 	SPM_FLAG_DIS_VCORE_DFS |
 	SPM_FLAG_DIS_ATF_ABORT |
 	SPM_FLAG_KEEP_CSYSPWRUPACK_HIGH |
+	/* SPM_FLAG_DIS_VPROC_VSRAM_DVS | */
 #if !defined(CONFIG_MTK_TINYSYS_SSPM_SUPPORT)
 	SPM_FLAG_DIS_SSPM_SRAM_SLEEP |
 #endif
@@ -1430,7 +1448,7 @@ static ssize_t idle_state_write(struct file *filp,
 		} else if (!strcmp(cmd, "bypass_secure_cg")) {
 			idle_by_pass_secure_cg = param;
 		} else if (!strcmp(cmd, "force_vcore_lp_mode")) {
-			idle_force_vcore_lp_mode = !!param;
+			idle_force_vcore_lp_mode = param;
 		}
 		return count;
 	}
@@ -1471,7 +1489,7 @@ static ssize_t dpidle_state_read(struct file *filp, char __user *userbuf, size_t
 	mt_idle_log("\n");
 
 	for (i = 0; i < NR_GRPS; i++) {
-		mt_idle_log("[%02d]dpidle_condition_mask[%-8s]=0x%08x\t\tdpidle_block_mask[%-8s]=0x%08x\n", i,
+		mt_idle_log("[%02d]dpidle_condition_mask[%-10s]=0x%08x\t\tdpidle_block_mask[%-10s]=0x%08x\n", i,
 				mtk_get_cg_group_name(i), idle_condition_mask[IDLE_TYPE_DP][i],
 				mtk_get_cg_group_name(i), idle_block_mask[IDLE_TYPE_DP][i]);
 	}
@@ -1481,7 +1499,7 @@ static ssize_t dpidle_state_read(struct file *filp, char __user *userbuf, size_t
 	mt_idle_log("dpidle_blocking_stat=\n");
 
 	for (i = 0; i < NR_GRPS; i++) {
-		mt_idle_log("[%-8s] - ", mtk_get_cg_group_name(i));
+		mt_idle_log("[%-10s] - ", mtk_get_cg_group_name(i));
 
 		for (k = 0; k < 32; k++) {
 			if (dpidle_blocking_stat[i][k] != 0)
@@ -1490,6 +1508,13 @@ static ssize_t dpidle_state_read(struct file *filp, char __user *userbuf, size_t
 		}
 		mt_idle_log("\n");
 	}
+
+	mt_idle_log("dpidle_clkmux_cond = %d\n", clkmux_cond[IDLE_TYPE_DP]);
+	for (i = 0; i < NF_CLK_CFG; i++)
+		mt_idle_log("[%02d]block_cond(0x%08x)=0x%08x\n",
+							i,
+							clkmux_addr[i],
+							clkmux_block_mask[IDLE_TYPE_DP][i]);
 
 	mt_idle_log("dpidle_by_pass_cg=%u\n", dpidle_by_pass_cg);
 	mt_idle_log("dpidle_by_pass_pg=%u\n", dpidle_by_pass_pg);
@@ -1604,15 +1629,24 @@ static ssize_t soidle3_state_read(struct file *filp, char __user *userbuf, size_
 	mt_idle_log("\n");
 
 	for (i = 0; i < NR_GRPS; i++) {
-		mt_idle_log("[%02d]soidle3_condition_mask[%-8s]=0x%08x\t\tsoidle3_block_mask[%-8s]=0x%08x\n", i,
+		mt_idle_log("[%02d]soidle3_condition_mask[%-10s]=0x%08x\t\tsoidle3_block_mask[%-10s]=0x%08x\n", i,
 			mtk_get_cg_group_name(i), idle_condition_mask[IDLE_TYPE_SO3][i],
 			mtk_get_cg_group_name(i), idle_block_mask[IDLE_TYPE_SO3][i]);
 	}
 
 	mt_idle_log("soidle3 pg_stat=0x%08x\n", idle_block_mask[IDLE_TYPE_SO3][NR_GRPS + 1]);
+
+	mt_idle_log("sodi3_clkmux_cond = %d\n",  clkmux_cond[IDLE_TYPE_SO3]);
+	for (i = 0; i < NF_CLK_CFG; i++)
+		mt_idle_log("[%02d]block_cond(0x%08x)=0x%08x\n",
+							i,
+							clkmux_addr[i],
+							clkmux_block_mask[IDLE_TYPE_SO3][i]);
+
 	mt_idle_log("soidle3_bypass_pll=%u\n", soidle3_by_pass_pll);
 	mt_idle_log("soidle3_bypass_cg=%u\n", soidle3_by_pass_cg);
 	mt_idle_log("soidle3_bypass_en=%u\n", soidle3_by_pass_en);
+	mt_idle_log("soidle3_by_pass_disp_pwm=%u\n", soidle3_by_pass_disp_pwm);
 	mt_idle_log("sodi3_flags=0x%x\n", sodi3_flags);
 
 	mt_idle_log("\n*********** soidle3 command help  ************\n");
@@ -1662,6 +1696,9 @@ static ssize_t soidle3_state_write(struct file *filp,
 		} else if (!strcmp(cmd, "bypass_en")) {
 			soidle3_by_pass_en = param;
 			idle_dbg("bypass_en = %d\n", soidle3_by_pass_en);
+		} else if (!strcmp(cmd, "bypass_pwm")) {
+			soidle3_by_pass_disp_pwm = param;
+			idle_dbg("bypass_pwm = %d\n", soidle3_by_pass_disp_pwm);
 		} else if (!strcmp(cmd, "sodi3_flags")) {
 			sodi3_flags = param;
 			idle_dbg("sodi3_flags = 0x%x\n", sodi3_flags);
@@ -1707,7 +1744,7 @@ static ssize_t soidle_state_read(struct file *filp, char __user *userbuf, size_t
 	mt_idle_log("\n");
 
 	for (i = 0; i < NR_GRPS; i++) {
-		mt_idle_log("[%02d]soidle_condition_mask[%-8s]=0x%08x\t\tsoidle_block_mask[%-8s]=0x%08x\n", i,
+		mt_idle_log("[%02d]soidle_condition_mask[%-10s]=0x%08x\t\tsoidle_block_mask[%-10s]=0x%08x\n", i,
 			mtk_get_cg_group_name(i), idle_condition_mask[IDLE_TYPE_SO][i],
 			mtk_get_cg_group_name(i), idle_block_mask[IDLE_TYPE_SO][i]);
 	}
@@ -1939,6 +1976,14 @@ static void mtk_idle_profile_init(void)
 	mtk_idle_block_setting(IDLE_TYPE_RG, rgidle_cnt, NULL, NULL);
 }
 
+void mtk_idle_set_clkmux_addr(void)
+{
+	unsigned int i;
+
+	for (i = 0; i < NF_CLK_CFG; i++)
+		clkmux_addr[i] = 0x10000040 + i * 0x10;
+}
+
 void __init mtk_cpuidle_framework_init(void)
 {
 	idle_ver("[%s]entry!!\n", __func__);
@@ -1985,6 +2030,8 @@ void __init mtk_cpuidle_framework_init(void)
 	mtk_idle_gpt_init();
 
 	dpidle_by_pass_pg = false;
+
+	mtk_idle_set_clkmux_addr();
 	mtk_idle_profile_init();
 }
 EXPORT_SYMBOL(mtk_cpuidle_framework_init);

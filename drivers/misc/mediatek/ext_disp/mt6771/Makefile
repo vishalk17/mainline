@@ -18,9 +18,8 @@
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/ \
              -I$(srctree)/drivers/misc/mediatek/ext_disp/  \
              -I$(srctree)/drivers/misc/mediatek/ext_disp/include/  \
-             -I$(srctree)/drivers/misc/mediatek/ext_disp/common/test/ \
+             -I$(srctree)/drivers/misc/mediatek/ext_disp/$(MTK_PLATFORM)/test/ \
              -I$(srctree)/drivers/misc/mediatek/gpu/ged/include \
-             -I$(srctree)/drivers/misc/mediatek/video/common \
              -I$(srctree)/drivers/misc/mediatek/video/include/ \
              -I$(srctree)/drivers/misc/mediatek/video/$(MTK_PLATFORM)/dispsys/ \
              -I$(srctree)/drivers/misc/mediatek/video/$(MTK_PLATFORM)/videox/ \
@@ -50,13 +49,14 @@ ccflags-y +=	-DANX7805_SUPPORT
 endif
 
 obj-y :=  \
-    dummy.o\
-#    external_display.o \
-#    mtk_extd_mgr.o   \
-#    extd_debug.o \
-#    extd_utils.o \
-#    extd_hdmi.o \
-#    extd_epd.o \
-#    extd_lcm.o \
-#    extd_multi_control.o \
-#    extd_factory.o
+    external_display.o \
+    mtk_extd_mgr.o   \
+    extd_debug.o \
+    extd_utils.o \
+    extd_hdmi.o \
+    extd_epd.o \
+    extd_lcm.o \
+    extd_multi_control.o \
+    extd_factory.o
+
+obj-$(CONFIG_MTK_HDMI_SUPPORT) += test/

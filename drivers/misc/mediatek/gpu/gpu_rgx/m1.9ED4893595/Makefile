@@ -162,10 +162,10 @@ pvrsrvkm-y += \
 	generated/devicememhistory_bridge/server_devicememhistory_bridge.o \
 	generated/devicememhistory_bridge/client_devicememhistory_direct_bridge.o \
 	generated/rgxsignals_bridge/server_rgxsignals_bridge.o \
-	services/system/rgx_$(MTK_PLATFORM)/ion_support.o \
-	services/system/rgx_$(MTK_PLATFORM)/mtk_mfgsys.o \
-	services/system/rgx_$(MTK_PLATFORM)/mtk_pp.o \
-	services/system/rgx_$(MTK_PLATFORM)/sysconfig.o
+	services/system/rgx_mtk/ion_support.o \
+	services/system/rgx_mtk/mtk_pp.o \
+	services/system/rgx_mtk/sysconfig.o \
+	services/system/rgx_mtk/$(MTK_PLATFORM)/mtk_mfgsys.o
 
 pvrsrvkm-$(CONFIG_ARM) += services/server/env/linux/osfunc_arm.o
 pvrsrvkm-$(CONFIG_ARM64) += services/server/env/linux/osfunc_arm64.o
@@ -178,7 +178,7 @@ endif
 
 ifeq ($(MTK_PLATFORM),mt6799)
 	pvrsrvkm-y += \
-		services/system/rgx_$(MTK_PLATFORM)/mtk_mfg_counter.o
+		services/system/rgx_mtk/$(MTK_PLATFORM)/mtk_mfg_counter.o
 endif
 
 ifeq ($(MTK_DDK_DEBUG),y)
@@ -235,7 +235,8 @@ ccflags-y += \
 	-I$(RGX_TOP)/services/srvinit/devices/rgx \
 	-I$(RGX_TOP)/services/srvinit/include \
 	-I$(RGX_TOP)/services/system/include \
-	-I$(RGX_TOP)/services/system/rgx_$(MTK_PLATFORM)
+	-I$(RGX_TOP)/services/system/rgx_mtk \
+	-I$(RGX_TOP)/services/system/rgx_mtk/$(MTK_PLATFORM)
 
 ccflags-y += \
 	-I$(srctree)/drivers/staging/android/ion \

@@ -65,9 +65,9 @@ struct DDP_MMP_Events {
 	mmp_event primary_seq_release;
 	mmp_event primary_ovl_fence_release;
 	mmp_event primary_wdma_fence_release;
-	mmp_event present_fence_release;
-	mmp_event present_fence_get;
-	mmp_event present_fence_set;
+	mmp_event primary_present_fence_release;
+	mmp_event primary_present_fence_get;
+	mmp_event primary_present_fence_set;
 	mmp_event idlemgr;
 	mmp_event idle_monitor;
 	mmp_event share_sram;
@@ -142,6 +142,7 @@ struct DDP_MMP_Events {
 	mmp_event dsi_lfr_switch;
 	mmp_event Dsi_Update;
 	mmp_event primary_set_cmd;
+	mmp_event primary_pm_qos;
 };
 
 struct DDP_MMP_Events *ddp_mmp_get_events(void);

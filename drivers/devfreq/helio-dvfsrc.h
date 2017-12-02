@@ -19,6 +19,8 @@
 
 #if defined(CONFIG_MACH_MT6775)
 #include <helio-dvfsrc-mt6775.h>
+#elif defined(CONFIG_MACH_MT6771)
+#include <helio-dvfsrc-mt6771.h>
 #endif
 
 struct reg_config {
@@ -82,6 +84,7 @@ extern u32 vcore_dvfs_to_vcore_dvfs_level[];
 
 extern void dvfsrc_update_sspm_vcore_opp_table(int opp, unsigned int vcore_uv);
 extern void dvfsrc_update_sspm_ddr_opp_table(int opp, unsigned int ddr_khz);
+extern int qos_ipi_to_sspm_command(void *buffer, int slot);
 
 extern int dvfsrc_get_bw(int type);
 extern int get_cur_vcore_dvfs_opp(void);

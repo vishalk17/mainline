@@ -877,7 +877,7 @@ static int smi_bwc_config(struct MTK_SMI_BWC_CONFIG *p_conf, unsigned int *pu4Lo
 	static enum MTK_SMI_BWC_SCEN ePreviousFinalScen = SMI_BWC_SCEN_CNT;
 
 	if ((p_conf->scenario >= SMI_BWC_SCEN_CNT) || (p_conf->scenario < 0)) {
-		SMIERR("Incorrect SMI BWC config : 0x%x, how could this be...\n", p_conf->scenario);
+		SMIMSG("Incorrect SMI BWC config : 0x%x, how could this be...\n", p_conf->scenario);
 		return -1;
 	}
 
@@ -2002,6 +2002,14 @@ module_param_named(bus_optimization, bus_optimization, uint, S_IRUGO | S_IWUSR);
 module_param_named(enable_ioctl, enable_ioctl, uint, S_IRUGO | S_IWUSR);
 module_param_named(enable_bw_optimization, enable_bw_optimization, uint, S_IRUGO | S_IWUSR);
 module_param_named(clk_mux_mask, clk_mux_mask, uint, S_IRUGO | S_IWUSR);
+
+#ifdef MMDVFS_PMQOS
+static struct kernel_param_ops qos_scenario_ops = {
+	.set = set_qos_scenario,
+	.get = get_qos_scenario,
+};
+module_param_cb(qos_scenario, &qos_scenario_ops, NULL, S_IRUGO | S_IWUSR);
+#endif
 module_exit(smi_exit);
 
 MODULE_DESCRIPTION("MTK SMI driver");

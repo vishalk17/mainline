@@ -16,19 +16,19 @@
 
 /* Feature options */
 /* #define LAST_DRAMC */
-/* #define SW_ZQCS */
-/* #define SW_TX_TRACKING */
+#define SW_ZQCS
+#define SW_TX_TRACKING
 /* #define DVFS_READY */
-/* #define EMI_READY */
+#define EMI_READY
 
 /* Registers define */
 #define PDEF_DRAMC0_CHA_REG_0E4	IOMEM((DRAMC_AO_CHA_BASE_ADDR + 0x00e4))
 #define PDEF_DRAMC0_CHA_REG_010	IOMEM((DRAMC_AO_CHA_BASE_ADDR + 0x0010))
 #define PDEF_SPM_AP_SEMAPHORE	IOMEM((SLEEP_BASE_ADDR + 0x428))
-#define PDEF_SPM_DVFS_TIMESTAMP	IOMEM((SLEEP_BASE_ADDR + 0x658))
+#ifdef DVFS_READY
 #define PDEF_SPM_TX_TIMESTAMP	IOMEM((SLEEP_BASE_ADDR + 0x65C))
 #define PDEF_SYS_TIMER	IOMEM((SYS_TIMER_BASE_ADDR + 0x8))
-
+#endif
 /* Define */
 #define DUAL_FREQ_HIGH		900
 #define DUAL_FREQ_LOW		650
@@ -49,7 +49,6 @@
 #define PATTERN1 0x5A5A5A5A
 #define PATTERN2 0xA5A5A5A5
 
-#ifdef SW_TX_TRACKING
 #define DRAMC_AO_RKCFG		(dramc_ao_chx_base+0x034)
 #define DRAMC_AO_PD_CTRL	(dramc_ao_chx_base+0x038)
 #define DRAMC_AO_MRS		(dramc_ao_chx_base+0x05C)
@@ -81,7 +80,6 @@ enum TX_RESULT {
 	TX_FAIL_DATA_RATE,
 	TX_FAIL_VARIATION
 };
-#endif
 
 #ifdef LAST_DRAMC
 #define LAST_DRAMC_SRAM_MGR

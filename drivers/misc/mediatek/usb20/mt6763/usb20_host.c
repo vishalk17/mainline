@@ -63,7 +63,8 @@ void do_register_otg_work(struct work_struct *data)
 	}
 
 	otg_nb.notifier_call = otg_tcp_notifier_call;
-	ret = register_tcp_dev_notifier(otg_tcpc_dev, &otg_nb);
+	ret = register_tcp_dev_notifier(otg_tcpc_dev, &otg_nb,
+		TCP_NOTIFY_TYPE_VBUS|TCP_NOTIFY_TYPE_USB);
 	if (ret < 0) {
 		DBG(0, "register OTG <%p> fail\n", otg_tcpc_dev);
 		queue_delayed_work(mtk_musb->st_wq, &register_otg_work,
@@ -731,10 +732,8 @@ void mt_usb_otg_init(struct musb *musb)
 {
 	/* BYPASS OTG function in special mode */
 	if (get_boot_mode() == META_BOOT
-#ifdef CONFIG_MTK_KERNEL_POWER_OFF_CHARGING
 			|| get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT
 			|| get_boot_mode() == LOW_POWER_OFF_CHARGING_BOOT
-#endif
 	   ) {
 		DBG(0, "in special mode %d\n", get_boot_mode());
 		return;

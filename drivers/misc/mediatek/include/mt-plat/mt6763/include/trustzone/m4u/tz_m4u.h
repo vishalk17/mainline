@@ -26,7 +26,7 @@ extern "C" {
 
 #define CMD_M4U_MAGIC           (0x77880000)
 
-typedef enum {
+enum m4u_cmd {
 	CMD_M4U_ADD = CMD_M4U_MAGIC,
 	CMD_M4U_CFG_PORT,
 	CMD_M4U_MAP_NONSEC_BUFFER,
@@ -55,7 +55,7 @@ typedef enum {
 
 	CMD_M4U_GET_RESERVED_MEMORY,
 	CMD_M4U_NUM,
-} m4u_cmd_t;
+};
 
 
 #define M4U_RET_OK              0
@@ -65,80 +65,80 @@ typedef enum {
 
 #define EXIT_ERROR                  ((uint32_t)(-1))
 
-typedef struct {
+struct m4u_add_param {
 	int a;
 	int b;
 	int result;
-} m4u_add_param_t;
+};
 
 #define M4U_SIN_NAME_LEN 12
 
-typedef struct {
+struct m4u_session_param {
 	int sid;
 	char name[M4U_SIN_NAME_LEN];
-} m4u_session_param_t;
+};
 
-typedef struct {
+struct m4u_cfg_port_param {
 	int port;
 	int virt;
 	int sec;
 	int distance;
 	int direction;
-} m4u_cfg_port_param_t;
+};
 
-typedef struct {
+struct m4u_buf_param {
 	int port;
 	unsigned int mva;
 	unsigned int size;
 	unsigned long long pa;
-} m4u_buf_param_t;
+};
 
-typedef struct {
+struct m4u_init_param {
 	unsigned long long nonsec_pt_pa;
 	int l2_en;
 	unsigned int sec_pt_pa;
 	unsigned long long sec_pa_start;
 	unsigned int sec_pa_size;
 	int reinit;
-} m4u_init_param_t;
+};
 
-typedef struct {
+struct m4u_systrace_param {
 	unsigned long pa;
 	unsigned long size;
-} m4u_systrace_param_t;
+};
 
-typedef struct {
+struct m4u_cfg_port_array_param {
 	unsigned char m4u_port_array[(M4U_PORT_NR+1)/2];
-} m4u_cfg_port_array_param_t;
+};
 
-typedef struct {
+struct m4u_larb_restore_param {
 	unsigned int larb_idx;
-} m4u_larb_restore_param_t;
+};
 
-typedef struct {
+struct m4u_reserved_memory_param {
 	unsigned int reserved_mem_start;
 	unsigned int reserved_mem_size;
-} m4u_reserved_memory_param_t;
+};
 
-typedef struct {
+struct m4u_msg {
 	unsigned int     cmd;
 	unsigned int     retval_for_tbase; /* it must be 0 */
 	unsigned int     rsp;
 
 	union {
-		m4u_session_param_t session_param;
-		m4u_cfg_port_param_t port_param;
-		m4u_buf_param_t buf_param;
-		m4u_init_param_t init_param;
-		m4u_cfg_port_array_param_t port_array_param;
+		struct m4u_session_param session_param;
+		struct m4u_cfg_port_param port_param;
+		struct m4u_buf_param buf_param;
+		struct m4u_init_param init_param;
+		struct m4u_cfg_port_array_param port_array_param;
 #ifdef __M4U_SECURE_SYSTRACE_ENABLE__
-		m4u_systrace_param_t systrace_param;
+		struct m4u_systrace_param systrace_param;
 #endif
-		m4u_larb_restore_param_t larb_param;
-		m4u_reserved_memory_param_t reserved_memory_param;
+		struct m4u_larb_restore_param larb_param;
+		struct m4u_reserved_memory_param reserved_memory_param;
 	};
 
-} m4u_msg_t;
+};
 
 #if defined(__cplusplus)
 }

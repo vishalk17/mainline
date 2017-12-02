@@ -299,10 +299,15 @@ bool ged_dvfs_cal_gpu_utilization(unsigned int *pui32Loading,
  * This shall be registered in vendor's GPU driver,
  * since each IP has its own rule
  */
+static unsigned long g_ged_dvfs_commit_idx; /* max freq opp idx */
 void (*ged_dvfs_gpu_freq_commit_fp)(unsigned long ui32NewFreqID,
 	GED_DVFS_COMMIT_TYPE eCommitType, int *pbCommited) = NULL;
 EXPORT_SYMBOL(ged_dvfs_gpu_freq_commit_fp);
 
+unsigned long ged_dvfs_get_last_commit_idx(void)
+{
+	return g_ged_dvfs_commit_idx;
+}
 
 bool ged_dvfs_gpu_freq_commit(unsigned long ui32NewFreqID, unsigned long ui32NewFreq, GED_DVFS_COMMIT_TYPE eCommitType)
 {
@@ -349,14 +354,15 @@ bool ged_dvfs_gpu_freq_commit(unsigned long ui32NewFreqID, unsigned long ui32New
 		/* do change */
 		if (ui32NewFreqID != ui32CurFreqID) {
 			/* call to DVFS module */
+			g_ged_dvfs_commit_idx = ui32NewFreqID;
 			ged_dvfs_gpu_freq_commit_fp(ui32NewFreqID, eCommitType, &bCommited);
 			/*
 			 * To-Do: refine previous freq contributions,
 			 * since it is possible to have multiple freq settings in previous execution period
 			 * Does this fatal for precision?
 			 */
-			ged_log_buf_print(ghLogBuf_DVFS, "[GED_K] new freq ID committed: idx=%lu type=%u",
-				ui32NewFreqID, eCommitType);
+			ged_log_buf_print(ghLogBuf_DVFS, "[GED_K] new freq ID committed: idx=%lu type=%u, g_type=%u",
+				ui32NewFreqID, eCommitType, g_CommitType);
 			if (bCommited == true) {
 				ged_log_buf_print(ghLogBuf_DVFS, "[GED_K] committed true");
 				g_ui32PreFreqID = ui32CurFreqID;
@@ -636,30 +642,19 @@ static int ged_dvfs_fb_gpu_dvfs(int t_gpu, int t_gpu_target)
 	if (is_fallback_mode_triggered) {
 		is_fallback_mode_triggered = 0;
 		spin_unlock_irqrestore(&gsGpuUtilLock, ui32IRQFlags);
-#ifdef GED_DVFS_ENABLE
 		return mt_gpufreq_get_cur_freq();
-#else
-		return -1;
-#endif
 	}
 	is_fb_dvfs_triggered = 0;
 	spin_unlock_irqrestore(&gsGpuUtilLock, ui32IRQFlags);
 
 	if (t_gpu <= 0) {
 		ged_log_buf_print(ghLogBuf_DVFS, "[GED_K][FB_DVFS] skip DVFS due to t_gpu <= 0, t_gpu: %d", t_gpu);
-#ifdef GED_DVFS_ENABLE
 		return mt_gpufreq_get_cur_freq();
-#else
-		return -1;
-#endif
 	}
 
 	t_gpu_target = t_gpu_target * (100 - gx_gpu_dvfs_margin) / 100;
-#ifdef GED_DVFS_ENABLE
 	i32MaxLevel = (int)(mt_gpufreq_get_dvfs_table_num() - 1);
-#endif
-	if (gpu_freq_pre == -1)
-		gpu_freq_pre = mt_gpufreq_get_freq_by_idx(0) >> 10;
+	gpu_freq_pre = mt_gpufreq_get_cur_freq() >> 10;
 
 	busy_cycle_cur = t_gpu * gpu_freq_pre;
 	busy_cycle[cur_frame_idx] = busy_cycle_cur;
@@ -679,9 +674,7 @@ static int ged_dvfs_fb_gpu_dvfs(int t_gpu, int t_gpu_target)
 	for (i = 0; i <= i32MaxLevel; i++) {
 		int gpu_freq;
 
-#ifdef GED_DVFS_ENABLE
 		gpu_freq = mt_gpufreq_get_freq_by_idx(i);
-#endif
 
 		if (gpu_freq_tar > gpu_freq) {
 			if (i == 0)
@@ -691,13 +684,11 @@ static int ged_dvfs_fb_gpu_dvfs(int t_gpu, int t_gpu_target)
 			break;
 		}
 	}
-#ifdef GED_DVFS_ENABLE
-	gpu_freq_pre = mt_gpufreq_get_freq_by_idx(ui32NewFreqID) >> 10;
-#endif
 	ged_log_buf_print(ghLogBuf_DVFS
 		, "[GED_K][FB_DVFS] FB DVFS mode, t_gpu: %d, t_gpu_target: %d, gpu_freq_tar: %d, gpu_freq_pre: %d"
 		, t_gpu, t_gpu_target, gpu_freq_tar, (gpu_freq_pre << 10));
 
+	g_CommitType = MTK_GPU_DVFS_TYPE_VSYNCBASED;
 	ged_dvfs_gpu_freq_commit((unsigned long)ui32NewFreqID, gpu_freq_tar, GED_DVFS_DEFAULT_COMMIT);
 	return gpu_freq_tar;
 }

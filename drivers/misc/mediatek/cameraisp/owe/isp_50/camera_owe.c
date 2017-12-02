@@ -49,7 +49,7 @@
 #include <cmdq_core.h>
 #include <cmdq_record.h>
 
-#define __OWE_EP_NO_CLKMGR__
+/* #define __OWE_EP_NO_CLKMGR__ */
 /* #define BYPASS_REG */
 /* Measure the kernel performance */
 /* #define __OWE_KERNEL_PERFORMANCE_MEASURE__ */
@@ -1024,7 +1024,7 @@ static signed int ConfigOCCHW(struct OWE_OCCConfig *pOccConfig)
 	if (OWE_DBG_DBGLOG == (OWE_DBG_DBGLOG & OWEInfo.DebugMask)) {
 		LOG_DBG("ConfigOCCHW Start!\n");
 #ifndef BYPASS_REG
-#define PRINT_DBG(REG) LOG_DBG(#REG ":0x%x!\n", pOccConfig->#REG)
+#define PRINT_DBG(REG) LOG_DBG(#REG ":0x%x!\n", pOccConfig->REG)
 		PRINT_DBG(DPE_OCC_CTRL_0);
 		PRINT_DBG(DPE_OCC_CTRL_1);
 		PRINT_DBG(DPE_OCC_CTRL_2);
@@ -1078,8 +1078,6 @@ static signed int ConfigOCCHW(struct OWE_OCCConfig *pOccConfig)
 	CMDQWR(DPE_OCC_WDMA_STRIDE);
 	CMDQWR(DPE_OCC_PQ_0);
 	CMDQWR(DPE_OCC_PQ_1);
-	CMDQWR(DPE_OCC_SPARE);
-	CMDQWR(DPE_OCC_DFT);
 
 	cmdqRecWrite(handle, OWE_OCC_START_HW, 0x1, CMDQ_REG_MASK);	/* OWE Interrupt read-clear mode */
 	cmdqRecWait(handle, CMDQ_EVENT_OCC_DONE);
@@ -1474,12 +1472,11 @@ static signed int OWE_DumpReg(void)
 
 		for (j = 0; j < _SUPPORT_MAX_OWE_FRAME_REQUEST_;) {
 			LOG_INF
-			    ("OCC:FrameStatus[%d]:%d, FrameStatus[%d]:%d, FrameStatus[%d]:%d, FrameStatus[%d]:%d\n",
+			    ("OCC:FrameStatus[%d]:%d, FrameStatus[%d]:%d, FrameStatus[%d]:%d\n",
 			     j, g_OCC_RequestRing.OCCReq_Struct[i].OccFrameStatus[j]
 			     , j + 1, g_OCC_RequestRing.OCCReq_Struct[i].OccFrameStatus[j + 1],
-			     j + 2, g_OCC_RequestRing.OCCReq_Struct[i].OccFrameStatus[j + 2]
-			     , j + 3, g_OCC_RequestRing.OCCReq_Struct[i].OccFrameStatus[j + 3]);
-			j = j + 4;
+			     j + 2, g_OCC_RequestRing.OCCReq_Struct[i].OccFrameStatus[j + 2]);
+			j = j + 3;
 		}
 	}
 
@@ -1498,12 +1495,11 @@ static signed int OWE_DumpReg(void)
 
 		for (j = 0; j < _SUPPORT_MAX_OWE_FRAME_REQUEST_;) {
 			LOG_INF
-			    ("WMFE:FrameStatus[%d]:%d, FrameStatus[%d]:%d, FrameStatus[%d]:%d, FrameStatus[%d]:%d\n",
+			    ("WMFE:FrameStatus[%d]:%d, FrameStatus[%d]:%d, FrameStatus[%d]:%d\n",
 			     j, g_WMFE_ReqRing.WMFEReq_Struct[i].WmfeFrameStatus[j]
 			     , j + 1, g_WMFE_ReqRing.WMFEReq_Struct[i].WmfeFrameStatus[j + 1],
-			     j + 2, g_WMFE_ReqRing.WMFEReq_Struct[i].WmfeFrameStatus[j + 2]
-			     , j + 3, g_WMFE_ReqRing.WMFEReq_Struct[i].WmfeFrameStatus[j + 3]);
-			j = j + 4;
+			     j + 2, g_WMFE_ReqRing.WMFEReq_Struct[i].WmfeFrameStatus[j + 2]);
+			j = j + 3;
 		}
 
 	}

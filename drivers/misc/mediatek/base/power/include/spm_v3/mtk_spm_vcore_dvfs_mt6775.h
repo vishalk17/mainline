@@ -118,9 +118,6 @@ extern unsigned int *vcorefs_get_src_req(void);
 
 extern void dvfsrc_set_scp_vcore_request(unsigned int val);
 extern void helio_dvfsrc_sspm_ipi_init(void);
-extern void send_swpm_init_ipi(unsigned int addr, unsigned int size,
-	unsigned int ch_num);
-
 
 extern void dvfsrc_update_sspm_vcore_opp_table(int opp, unsigned int vcore_uv);
 extern void dvfsrc_update_sspm_ddr_opp_table(int opp, unsigned int ddr_khz);

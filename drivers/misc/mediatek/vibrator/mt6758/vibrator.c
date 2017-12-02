@@ -55,6 +55,12 @@ void vibr_Disable_HW(void)
 	pmic_set_register_value(PMIC_RG_LDO_VGP2_SW_OP_EN, 0);
 }
 
+void init_vibr_oc_handler(void (*vibr_oc_func)(void))
+{
+	/* add corresponding interrupt registration */
+	/* Ex: pmic_register_interrupt_callback(INT_VIBR_OC, vibr_oc_func); */
+}
+
 /******************************************
 * Set RG_VIBR_VOSEL	Output voltage select
 *  hw->vib_vol:  Selects output voltage
